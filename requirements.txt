@@ -1,0 +1,24 @@
+# León vs Impala - Sistema de Aprendizaje por Refuerzo
+# Requisitos mínimos: Python 3.8+
+
+# Librerías estándar de Python (incluidas en la instalación base)
+# No se requieren librerías externas adicionales
+
+# El proyecto utiliza únicamente:
+# - typing (type hints)
+# - dataclasses
+# - enum
+# - collections
+# - json
+# - os
+# - time
+# - random
+# - math
+
+# Para desarrollo y testing (opcional):
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+
+# Para visualización avanzada (futuro - opcional):
+# matplotlib>=3.5.0
+# numpy>=1.21.0
