@@ -31,7 +31,7 @@ class Abrevadero:
     """
     
     # Radio del círculo de posiciones (en cuadros)
-    RADIO = 5
+    RADIO = 9.5  # Ajustado para coincidir con grid 19×19
     
     # Posición central del impala
     CENTRO = (0, 0)

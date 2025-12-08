@@ -5,12 +5,12 @@ Punto de entrada principal del programa
 
 import sys
 import os
+import json
 
 # Agregar el directorio actual al path de Python
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ui.entrenamiento_ui import EntrenamientoUI
-from ui.paso_a_paso import PasoAPasoUI
 from storage.carga import cargar_conocimiento
 
 
@@ -28,10 +28,9 @@ def menu_principal():
         print("MENÚ PRINCIPAL")
         print("=" * 70)
         print("1. Sistema de Entrenamiento")
-        print("2. Visualización Paso a Paso")
-        print("3. Visualización con León Entrenado")
-        print("4. Acerca del Proyecto")
-        print("5. Salir")
+        print("2. Simulación Visual (Grid 19×19)")
+        print("3. Acerca del Proyecto")
+        print("4. Salir")
         
         opcion = input("\nSelecciona una opción: ").strip()
         
@@ -39,15 +38,12 @@ def menu_principal():
             modo_entrenamiento()
         
         elif opcion == '2':
-            modo_visualizacion()
+            modo_visualizacion_terminal_grid()
         
         elif opcion == '3':
-            modo_visualizacion_entrenado()
-        
-        elif opcion == '4':
             mostrar_acerca_de()
         
-        elif opcion == '5':
+        elif opcion == '4':
             print("\n¡Gracias por usar León vs Impala!")
             print("Desarrollado como proyecto final de Sistemas Inteligentes\n")
             break
@@ -62,21 +58,344 @@ def modo_entrenamiento():
     ui.menu_principal()
 
 
+def modo_visualizacion_terminal_grid():
+    """Modo de visualización con grid 19×19 en terminal (ASCII)"""
+    from ui.interfaz_terminal_grid import InterfazTerminalGrid
+    from learning.q_learning import QLearning
+    from learning.recompensas import SistemaRecompensas
+    from knowledge.base_conocimientos import BaseConocimientos
+    
+    print("\n" + "=" * 70)
+    print("MODO VISUALIZACIÓN - GRID 19×19 EN TERMINAL")
+    print("="*70)
+    print("\nEsta interfaz muestra el grid en la terminal usando ASCII:")
+    print("  • Grid 19×19 completo en caracteres")
+    print("  • Colores ANSI para mejor visualización")
+    print("  • Sin dependencias de matplotlib")
+    print("  • Visualización en tiempo real")
+    
+    # Detectar soporte de emojis
+    usar_emojis = True
+    try:
+        print("\n🦁🦌 ¿Puedes ver estos emojis correctamente?")
+        respuesta = input("(s/n, Enter=s): ").strip().lower()
+        if respuesta == 'n':
+            usar_emojis = False
+            print("✓ Se usarán caracteres ASCII simples (L para león, I para impala)")
+    except:
+        usar_emojis = False
+    
+    print("\n¿Qué modo deseas usar?")
+    print("  1. Manual (tú decides las acciones del león)")
+    print("  2. Agente entrenado (Q-Learning decide automáticamente)")
+    
+    modo = input("\nElige opción (1-2, Enter=1): ").strip() or "1"
+    usar_agente = (modo == '2')
+    
+    # Crear interfaz
+    base_conocimientos = BaseConocimientos()
+    agente_q = None
+    
+    if usar_agente:
+        print("\n🧠 Cargando agente entrenado...")
+        try:
+            from storage.carga import cargar_conocimiento
+            import os
+            
+            # Buscar archivos de conocimiento disponibles
+            ruta_datos = "modelos"
+            archivos = []
+            if os.path.exists(ruta_datos):
+                archivos = sorted([f for f in os.listdir(ruta_datos) if f.endswith("_conocimiento.json")])
+            
+            if archivos:
+                print("\n📂 Bases de conocimiento disponibles:")
+                for i, archivo in enumerate(archivos, 1):
+                    # Obtener tamaño del archivo
+                    ruta = os.path.join(ruta_datos, archivo)
+                    tamaño_kb = os.path.getsize(ruta) / 1024
+                    print(f"   {i}. {archivo} ({tamaño_kb:.1f} KB)")
+                
+                # Preguntar cuál usar
+                seleccion = input(f"\n¿Cuál usar? (1-{len(archivos)}, Enter={len(archivos)}): ").strip()
+                if seleccion == "":
+                    indice = len(archivos) - 1  # Último (más reciente)
+                else:
+                    try:
+                        indice = int(seleccion) - 1
+                        indice = max(0, min(len(archivos) - 1, indice))
+                    except:
+                        indice = len(archivos) - 1
+                
+                archivo_seleccionado = archivos[indice]
+                ruta_completa = os.path.join(ruta_datos, archivo_seleccionado)
+                print(f"\n📥 Cargando: {archivo_seleccionado}")
+                
+                # Cargar también el archivo de configuración para verificar el RADIO
+                archivo_config = archivo_seleccionado.replace("_conocimiento.json", "_config.json")
+                ruta_config = os.path.join(ruta_datos, archivo_config)
+                radio_entrenamiento = None
+                if os.path.exists(ruta_config):
+                    try:
+                        with open(ruta_config, 'r') as f:
+                            config_data = json.load(f)
+                            if 'abrevadero' in config_data:
+                                radio_entrenamiento = config_data['abrevadero'].get('RADIO')
+                    except:
+                        pass
+                
+                base_conocimientos = cargar_conocimiento(ruta_completa)
+                if base_conocimientos:
+                    print("✓ Base de conocimientos cargada")
+                    
+                    # Verificar compatibilidad de RADIO
+                    from environment import Abrevadero
+                    radio_actual = Abrevadero.RADIO
+                    
+                    if radio_entrenamiento:
+                        print(f"   RADIO de entrenamiento: {radio_entrenamiento}")
+                        print(f"   RADIO actual: {radio_actual}")
+                        
+                        if abs(radio_entrenamiento - radio_actual) > 0.1:
+                            print("\n⚠️  ADVERTENCIA: El RADIO cambió")
+                            print(f"   Este conocimiento fue entrenado con RADIO={radio_entrenamiento}")
+                            print(f"   El RADIO actual es {radio_actual}")
+                            print("   El agente puede tener peor rendimiento")
+                            print("   Se recomienda re-entrenar con el nuevo RADIO")
+                        else:
+                            print("✓ El RADIO coincide con el del entrenamiento")
+                    else:
+                        print(f"\n⚠️  No se pudo determinar el RADIO de entrenamiento")
+                        print(f"   (Probablemente entrenado con versión antigua)")
+                        print(f"   RADIO actual: {radio_actual}")
+                else:
+                    print("⚠️  Error al cargar el archivo")
+            else:
+                print("⚠️  No se encontró conocimiento previo en 'datos/'")
+                print("   Ejecuta primero la opción 1 (Entrenamiento)")
+        except Exception as e:
+            print(f"⚠️  Error al cargar: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        sistema_recompensas = SistemaRecompensas()
+        agente_q = QLearning(base_conocimientos, sistema_recompensas)
+    
+    interfaz = InterfazTerminalGrid(base_conocimientos, agente_q, usar_emojis)
+    
+    # Pedir posición inicial
+    import random
+    try:
+        entrada = input("\n🦁 Posición inicial del león (1-8, Enter=aleatoria): ").strip()
+        if entrada:
+            posicion = int(entrada)
+            posicion = max(1, min(8, posicion))
+        else:
+            posicion = random.randint(1, 8)
+            print(f"   → Posición aleatoria seleccionada: {posicion}")
+    except:
+        posicion = random.randint(1, 8)
+        print(f"   → Posición aleatoria seleccionada: {posicion}")
+    
+    # Delay para modo automático
+    delay = 1.0
+    if usar_agente:
+        try:
+            delay = float(input("⏱️  Delay entre turnos (segundos, Enter=1.0): ").strip() or "1.0")
+        except:
+            delay = 1.0
+    
+    # Visualizar
+    try:
+        interfaz.visualizar_caceria_interactiva(
+            posicion_inicial=posicion,
+            usar_agente_entrenado=usar_agente,
+            delay=delay
+        )
+    except KeyboardInterrupt:
+        print("\n\n👋 Visualización interrumpida por el usuario")
+    except Exception as e:
+        print(f"\n❌ Error durante la visualización: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def modo_visualizacion_grid():
+    """Modo de visualización con grid 19×19 interactivo (matplotlib)"""
+    try:
+        from ui.interfaz_visual_grid import InterfazVisualGrid
+        from learning.q_learning import QLearning
+        from learning.recompensas import SistemaRecompensas
+        from knowledge.base_conocimientos import BaseConocimientos
+    except ImportError as e:
+        print(f"\n❌ Error al importar módulos de visualización: {e}")
+        print("Asegúrate de que matplotlib esté instalado: pip install matplotlib")
+        return
+    
+    print("\n" + "=" * 70)
+    print("MODO VISUALIZACIÓN - GRID 19×19")
+    print("=" * 70)
+    print("\nEsta interfaz muestra el mapa en un grid 19×19 con:")
+    print("  • Posiciones del león y el impala")
+    print("  • Cono de visión del impala")
+    print("  • Trayectoria completa del león")
+    print("  • Panel de información en tiempo real")
+    
+    print("\n¿Qué modo deseas usar?")
+    print("  1. Manual (tú decides las acciones del león)")
+    print("  2. Agente entrenado (Q-Learning decide automáticamente)")
+    
+    modo = input("\nElige opción (1-2, Enter=1): ").strip() or "1"
+    usar_agente = (modo == '2')
+    
+    # Crear interfaz
+    base_conocimientos = BaseConocimientos()
+    agente_q = None
+    
+    if usar_agente:
+        print("\n🧠 Cargando agente entrenado...")
+        try:
+            from storage.carga import cargar_conocimiento
+            import os
+            
+            # Buscar archivos de conocimiento disponibles
+            ruta_datos = "modelos"
+            archivos = []
+            if os.path.exists(ruta_datos):
+                archivos = sorted([f for f in os.listdir(ruta_datos) if f.endswith("_conocimiento.json")])
+            
+            if archivos:
+                print("\n📂 Bases de conocimiento disponibles:")
+                for i, archivo in enumerate(archivos, 1):
+                    # Obtener tamaño del archivo
+                    ruta = os.path.join(ruta_datos, archivo)
+                    tamaño_kb = os.path.getsize(ruta) / 1024
+                    print(f"   {i}. {archivo} ({tamaño_kb:.1f} KB)")
+                
+                # Preguntar cuál usar
+                seleccion = input(f"\n¿Cuál usar? (1-{len(archivos)}, Enter={len(archivos)}): ").strip()
+                if seleccion == "":
+                    indice = len(archivos) - 1  # Último (más reciente)
+                else:
+                    try:
+                        indice = int(seleccion) - 1
+                        indice = max(0, min(len(archivos) - 1, indice))
+                    except:
+                        indice = len(archivos) - 1
+                
+                archivo_seleccionado = archivos[indice]
+                ruta_completa = os.path.join(ruta_datos, archivo_seleccionado)
+                print(f"\n📥 Cargando: {archivo_seleccionado}")
+                
+                # Cargar también el archivo de configuración para verificar el RADIO
+                archivo_config = archivo_seleccionado.replace("_conocimiento.json", "_config.json")
+                ruta_config = os.path.join(ruta_datos, archivo_config)
+                radio_entrenamiento = None
+                if os.path.exists(ruta_config):
+                    try:
+                        with open(ruta_config, 'r') as f:
+                            config_data = json.load(f)
+                            if 'abrevadero' in config_data:
+                                radio_entrenamiento = config_data['abrevadero'].get('RADIO')
+                    except:
+                        pass
+                
+                base_conocimientos = cargar_conocimiento(ruta_completa)
+                if base_conocimientos:
+                    print("✓ Base de conocimientos cargada")
+                    
+                    # Verificar compatibilidad de RADIO
+                    from environment import Abrevadero
+                    radio_actual = Abrevadero.RADIO
+                    
+                    if radio_entrenamiento:
+                        print(f"   RADIO de entrenamiento: {radio_entrenamiento}")
+                        print(f"   RADIO actual: {radio_actual}")
+                        
+                        if abs(radio_entrenamiento - radio_actual) > 0.1:
+                            print("\n⚠️  ADVERTENCIA: El RADIO cambió")
+                            print(f"   Este conocimiento fue entrenado con RADIO={radio_entrenamiento}")
+                            print(f"   El RADIO actual es {radio_actual}")
+                            print("   El agente puede tener peor rendimiento")
+                            print("   Se recomienda re-entrenar con el nuevo RADIO")
+                        else:
+                            print("✓ El RADIO coincide con el del entrenamiento")
+                    else:
+                        print(f"\n⚠️  No se pudo determinar el RADIO de entrenamiento")
+                        print(f"   (Probablemente entrenado con versión antigua)")
+                        print(f"   RADIO actual: {radio_actual}")
+                    
+                    sistema_recompensas = SistemaRecompensas()
+                    agente_q = QLearning(base_conocimientos, sistema_recompensas)
+                else:
+                    print("⚠️  Error al cargar el archivo")
+                    print("Se usará un agente sin entrenamiento")
+                    sistema_recompensas = SistemaRecompensas()
+                    agente_q = QLearning(base_conocimientos, sistema_recompensas)
+            else:
+                print("⚠️  No se encontró conocimiento previo en 'datos/'")
+                print("   Ejecuta primero la opción 1 (Entrenamiento)")
+                print("Se usará un agente sin entrenamiento")
+                sistema_recompensas = SistemaRecompensas()
+                agente_q = QLearning(base_conocimientos, sistema_recompensas)
+        except Exception as e:
+            print(f"⚠️  Error al cargar: {e}")
+            print("Se usará un agente sin entrenamiento")
+            import traceback
+            traceback.print_exc()
+    
+    interfaz = InterfazVisualGrid(base_conocimientos, agente_q)
+    
+    # Pedir posición inicial
+    import random
+    try:
+        entrada = input("\n🦁 Posición inicial del león (1-8, Enter=aleatoria): ").strip()
+        if entrada:
+            posicion = int(entrada)
+            posicion = max(1, min(8, posicion))
+        else:
+            posicion = random.randint(1, 8)
+            print(f"   → Posición aleatoria seleccionada: {posicion}")
+    except:
+        posicion = random.randint(1, 8)
+        print(f"   → Posición aleatoria seleccionada: {posicion}")
+    
+    # Visualizar
+    try:
+        interfaz.visualizar_caceria_interactiva(
+            posicion_inicial=posicion,
+            usar_agente_entrenado=usar_agente
+        )
+    except KeyboardInterrupt:
+        print("\n\n👋 Visualización interrumpida por el usuario")
+    except Exception as e:
+        print(f"\n❌ Error durante la visualización: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 def modo_visualizacion():
     """Modo de visualización paso a paso sin entrenamiento"""
     print("\n" + "=" * 70)
-    print("MODO VISUALIZACIÓN - SIN ENTRENAMIENTO")
+    print("MODO VISUALIZACIÓN - SIN ENTRENAMIENTO (TEXTO)")
     print("=" * 70)
     print("El león tomará decisiones aleatorias")
     
     ui = PasoAPasoUI()
     
+    import random
     try:
-        posicion = int(input("\nPosición inicial del león (1-8, Enter=1): ").strip() or "1")
-        if not 1 <= posicion <= 8:
-            posicion = 1
+        entrada = input("\nPosición inicial del león (1-8, Enter=aleatoria): ").strip()
+        if entrada:
+            posicion = int(entrada)
+            if not 1 <= posicion <= 8:
+                posicion = 1
+        else:
+            posicion = random.randint(1, 8)
+            print(f"   → Posición aleatoria seleccionada: {posicion}")
     except:
-        posicion = 1
+        posicion = random.randint(1, 8)
+        print(f"   → Posición aleatoria seleccionada: {posicion}")
     
     print("\nTipo de visualización:")
     print("1. Paso a paso (manual)")
@@ -104,7 +423,7 @@ def modo_visualizacion_entrenado():
     
     from storage.guardado import listar_guardados
     
-    guardados = listar_guardados("datos")
+    guardados = listar_guardados("modelos")
     
     if not guardados:
         print("\n❌ No hay entrenamientos guardados")
@@ -138,9 +457,15 @@ def modo_visualizacion_entrenado():
         # Crear UI con conocimiento
         ui = PasoAPasoUI(base_conocimientos=bc)
         
-        posicion = int(input("\nPosición inicial del león (1-8, Enter=1): ").strip() or "1")
-        if not 1 <= posicion <= 8:
-            posicion = 1
+        import random
+        entrada = input("\nPosición inicial del león (1-8, Enter=aleatoria): ").strip()
+        if entrada:
+            posicion = int(entrada)
+            if not 1 <= posicion <= 8:
+                posicion = 1
+        else:
+            posicion = random.randint(1, 8)
+            print(f"   → Posición aleatoria seleccionada: {posicion}")
         
         print("\nTipo de visualización:")
         print("1. Paso a paso (manual)")
@@ -219,7 +544,7 @@ def mostrar_acerca_de():
 
 def verificar_directorios():
     """Verifica y crea directorios necesarios"""
-    directorios = ['datos', 'tests']
+    directorios = ['modelos']
     for directorio in directorios:
         if not os.path.exists(directorio):
             os.makedirs(directorio)

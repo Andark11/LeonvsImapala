@@ -126,11 +126,11 @@ dmypy.json
 *~
 .DS_Store
 
-# Archivos de datos generados (entrenamientos guardados)
-datos/
-datos/*.json
-datos/*_backup_*.json
-datos/*.txt
+# Archivos de modelos generados (entrenamientos guardados)
+modelos/
+modelos/*.json
+modelos/*_backup_*.json
+modelos/*.txt
 
 # Archivos temporales
 *.tmp

@@ -107,9 +107,30 @@ class Caceria:
         # 2. LEÓN REACCIONA
         desc_leon = self.leon.ejecutar_accion(accion_leon)
         
-        # Actualizar posición exacta del león si avanzó
+        # Actualizar posición exacta del león si avanzó o atacó
         if accion_leon == AccionLeon.AVANZAR:
-            nueva_pos = self.abrevadero.calcular_nueva_posicion_avance(self.leon.posicion)
+            # Avanzar 1 cuadro
+            if self.leon.posicion_exacta:
+                # Ya tiene posición exacta, calcular desde ahí
+                nueva_pos = self._calcular_avance_desde_posicion(
+                    self.leon.posicion_exacta, 1
+                )
+            else:
+                # Primera vez que avanza, calcular desde posición inicial
+                nueva_pos = self.abrevadero.calcular_nueva_posicion_avance(self.leon.posicion)
+            self.leon.actualizar_posicion_exacta(nueva_pos)
+        
+        elif accion_leon == AccionLeon.ATACAR or self.leon.esta_atacando:
+            # Atacar avanza 2 cuadros por turno
+            if self.leon.posicion_exacta:
+                # Ya tiene posición exacta, calcular desde ahí
+                nueva_pos = self._calcular_avance_desde_posicion(
+                    self.leon.posicion_exacta, 2
+                )
+            else:
+                # Primera vez que ataca, calcular desde posición inicial
+                pos_inicial = self.abrevadero.obtener_coordenadas(self.leon.posicion)
+                nueva_pos = self._calcular_avance_desde_posicion(pos_inicial, 2)
             self.leon.actualizar_posicion_exacta(nueva_pos)
         
         # 3. VERIFICAR CONDICIONES DEL MUNDO
@@ -151,6 +172,40 @@ class Caceria:
             self.indice_secuencia = (self.indice_secuencia + 1) % len(self.secuencia_impala)
             return accion
     
+    def _calcular_avance_desde_posicion(self, posicion_actual: Tuple[float, float], 
+                                        cuadros: int) -> Tuple[float, float]:
+        """
+        Calcula la nueva posición después de avanzar N cuadros hacia el centro.
+        
+        Args:
+            posicion_actual: Posición actual (x, y)
+            cuadros: Número de cuadros a avanzar
+            
+        Returns:
+            Nueva posición (x, y)
+        """
+        import math
+        
+        x, y = posicion_actual
+        centro_x, centro_y = self.abrevadero.CENTRO
+        
+        # Calcular distancia actual al centro
+        distancia = math.sqrt((centro_x - x)**2 + (centro_y - y)**2)
+        
+        if distancia == 0:
+            return posicion_actual
+        
+        # Vector unitario hacia el centro
+        dx = (centro_x - x) / distancia
+        dy = (centro_y - y) / distancia
+        
+        # Avanzar N cuadros (pero sin pasar el centro)
+        avance = min(cuadros, distancia)
+        nueva_x = x + dx * avance
+        nueva_y = y + dy * avance
+        
+        return (round(nueva_x, 2), round(nueva_y, 2))
+    
     def _verificar_mundo(self, ultima_accion_impala: AccionImpala) -> str:
         """
         Verifica las condiciones del mundo y actualiza estados.
@@ -181,11 +236,11 @@ class Caceria:
         distancia = self.verificador.calcular_distancia_actual(self.leon)
         
         if self.leon.esta_atacando:
-            return f"León atacando (distancia: {distancia:.2f} cuadros)"
+            return f"León ATACANDO 🔥 (Velocidad: {self.leon.VELOCIDAD_ATAQUE} cuadros/T, distancia: {distancia:.2f})"
         elif self.leon.esta_escondido:
-            return f"León escondido (distancia: {distancia:.2f} cuadros)"
+            return f"León escondido 🌿 (distancia: {distancia:.2f} cuadros)"
         else:
-            return f"León avanzando (distancia: {distancia:.2f} cuadros)"
+            return f"León avanzando (Velocidad: {self.leon.VELOCIDAD_AVANCE} cuadros/T, distancia: {distancia:.2f})"
     
     def _verificar_fin_caceria(self) -> Tuple[bool, str]:
         """

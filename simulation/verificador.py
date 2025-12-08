@@ -80,8 +80,8 @@ class Verificador:
         if not leon.esta_atacando:
             return False
         
-        # Calcular distancia actual
-        distancia = self.abrevadero.distancia_leon_impala(leon.posicion)
+        # Calcular distancia actual (usando posicion_exacta si está disponible)
+        distancia = self.calcular_distancia_actual(leon)
         
         # El león alcanza al impala si la distancia es <= 0.5 cuadros
         return distancia <= 0.5

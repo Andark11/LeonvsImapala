@@ -36,8 +36,16 @@ def guardar_conocimiento(base_conocimientos: BaseConocimientos,
         # Generar JSON
         json_data = base_conocimientos.exportar_a_json()
         
+        # Obtener configuración del abrevadero
+        from environment import Abrevadero
+        
         # Agregar metadatos
         data = json.loads(json_data)
+        data['abrevadero'] = {
+            'RADIO': Abrevadero.RADIO,
+            'ANGULO_VISION': Abrevadero.ANGULO_VISION,
+            'DISTANCIA_MINIMA_HUIDA': Abrevadero.DISTANCIA_MINIMA_HUIDA
+        }
         data['metadata'] = {
             'fecha_guardado': datetime.now().isoformat(),
             'version': '1.0'
@@ -90,10 +98,19 @@ def guardar_estado_completo(base_conocimientos: BaseConocimientos,
         # Guardar base de conocimientos
         guardar_conocimiento(base_conocimientos, ruta_bc)
         
+        # Obtener configuración del abrevadero
+        from environment import Abrevadero
+        abrevadero_config = {
+            'RADIO': Abrevadero.RADIO,
+            'ANGULO_VISION': Abrevadero.ANGULO_VISION,
+            'DISTANCIA_MINIMA_HUIDA': Abrevadero.DISTANCIA_MINIMA_HUIDA
+        }
+        
         # Guardar configuración de Q-Learning
         config = {
             'q_learning': q_learning.obtener_estadisticas(),
             'estadisticas_bc': base_conocimientos.obtener_estadisticas(),
+            'abrevadero': abrevadero_config,
             'metadata': {
                 'fecha_guardado': datetime.now().isoformat(),
                 'version': '1.0'

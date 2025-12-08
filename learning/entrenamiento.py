@@ -81,7 +81,14 @@ class Entrenador:
             
             # Callback de progreso
             if callback_progreso and (episodio + 1) % 100 == 0:
-                callback_progreso(episodio + 1, num_episodios, exitosas_en_ciclo)
+                # Pasar: episodios_actuales, total_episodios, exitosas_sesion, exitosas_acumuladas, cacerias_totales
+                callback_progreso(
+                    episodio + 1, 
+                    num_episodios, 
+                    exitosas_en_ciclo,
+                    self.cacerias_exitosas,
+                    self.total_cacerias
+                )
             
             # Mensaje de progreso
             if verbose and (episodio + 1) % 500 == 0:

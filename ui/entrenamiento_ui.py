@@ -19,7 +19,7 @@ class EntrenamientoUI:
     def __init__(self):
         """Inicializa la interfaz"""
         self.entrenador = Entrenador()
-        self.directorio_datos = "datos"
+        self.directorio_datos = "modelos"
     
     def ejecutar_entrenamiento_interactivo(self):
         """Ejecuta un entrenamiento con configuración interactiva"""
@@ -80,9 +80,15 @@ class EntrenamientoUI:
         print("(Esto puede tardar varios minutos)")
         print()
         
-        def callback_progreso(actual, total, exitosas):
-            tasa = (exitosas / actual * 100) if actual > 0 else 0
-            print(f"Progreso: {actual}/{total} - Tasa de éxito: {tasa:.1f}%")
+        def callback_progreso(actual, total, exitosas_sesion, exitosas_totales, cacerias_totales):
+            # Tasa de la sesión actual
+            tasa_sesion = (exitosas_sesion / actual * 100) if actual > 0 else 0
+            # Tasa acumulada (incluyendo entrenamientos anteriores)
+            tasa_total = (exitosas_totales / cacerias_totales * 100) if cacerias_totales > 0 else 0
+            
+            print(f"Progreso: {actual}/{total} | "
+                  f"Sesión: {tasa_sesion:.1f}% | "
+                  f"Total acumulado: {tasa_total:.1f}% ({exitosas_totales}/{cacerias_totales})")
         
         reporte = self.entrenador.entrenar(
             num_episodios=num_episodios,

@@ -110,7 +110,7 @@ class PasoAPasoUI:
         print(f"  Huyendo: {'Sí' if impala.esta_huyendo else 'No'}")
         if impala.esta_huyendo:
             print(f"  Velocidad de huida: {impala.velocidad_huida} cuadros/T")
-            print(f"  Distancia recorrida: {impala.distancia_huida:.1f} cuadros")
+            print(f"  Tiempo huyendo: {impala.tiempo_huyendo} turnos")
         
         print(f"\nDISTANCIA: {distancia:.2f} cuadros")
     
@@ -118,15 +118,26 @@ class PasoAPasoUI:
         """Decide la acción usando la base de conocimientos"""
         # Crear estado actual
         from knowledge.base_conocimientos import Estado
+        from agents.impala import AccionImpala
         
         distancia = self.caceria.verificador.calcular_distancia_actual(self.caceria.leon)
+        
+        # Determinar acción actual del impala
+        accion_impala_actual = AccionImpala.HUIR if self.caceria.impala.esta_huyendo else AccionImpala.VER_FRENTE
+        
+        # Verificar si el impala puede ver al león
+        impala_ve_leon = self.caceria.verificador.impala_puede_ver_leon(
+            self.caceria.leon, 
+            self.caceria.impala, 
+            accion_impala_actual
+        )
         
         estado = Estado(
             posicion_leon=self.caceria.leon.posicion,
             distancia_impala=round(distancia * 2) / 2,
             accion_impala="ver_frente",  # Simplificado
             leon_escondido=self.caceria.leon.esta_escondido,
-            impala_puede_ver=self.caceria.impala.puede_ver_leon
+            impala_puede_ver=impala_ve_leon
         )
         
         # Obtener mejor acción
