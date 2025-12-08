@@ -772,12 +772,13 @@ Sin licencia, todos los derechos reservados.
 **Proyecto Final - Sistemas Inteligentes**  
 Implementación educativa de Q-Learning aplicado a caza predador-presa
 
-Alvarado Martínez Miguel Eduardo
-García Retana Alba Sughey
-Soria Cabrera Andrés
-Sosa Pérez Dariana Montserrat
+- Alvarado Martínez Miguel Eduardo
+- García Retana Alba Sughey
+- Soria Cabrera Andrés
+- Sosa Pérez Dariana Montserrat
 ---
 
 **Estado:** ✅ Sistema completo y funcional  
 **Versión:** 1.0.0  
 **Última actualización:** Diciembre 2025
+ 
