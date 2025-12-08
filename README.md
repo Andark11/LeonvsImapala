@@ -46,14 +46,6 @@ Sistema de aprendizaje por refuerzo donde un león aprende a cazar un impala med
    # Resultado esperado: 9/9 tests pasando ✓
    \`\`\`
 
-### Inicio Rápido (Script Bash)
-
-También puedes usar el script de inicio rápido:
-
-\`\`\`bash
-bash INICIO_RAPIDO.sh
-\`\`\`
-
 ## 📖 Uso
 
 ### 1. Entrenar un León
@@ -772,10 +764,12 @@ Sin licencia, todos los derechos reservados.
 **Proyecto Final - Sistemas Inteligentes**  
 Implementación educativa de Q-Learning aplicado a caza predador-presa
 
-- Alvarado Martínez Miguel Eduardo
-- García Retana Alba Sughey
-- Soria Cabrera Andrés
-- Sosa Pérez Dariana Montserrat
+**Equipo de desarrollo:**
+
+- **Alvarado Martínez Miguel Eduardo**
+- **García Retana Alba Sughey**
+- **Soria Cabrera Andrés**
+- **Sosa Pérez Dariana Montserrat**
 ---
 
 **Estado:** ✅ Sistema completo y funcional  
