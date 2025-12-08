@@ -41,6 +41,7 @@ class Impala:
         self.velocidad_huida = 0
         self.direccion_huida: Optional[Direccion] = None
         self.tiempo_huyendo = 0
+        self.posicion_leon_detectada: Optional[int] = None
     
     def resetear(self):
         """Resetea el estado del impala a su estado inicial"""
@@ -49,6 +50,7 @@ class Impala:
         self.velocidad_huida = 0
         self.direccion_huida = None
         self.tiempo_huyendo = 0
+        self.posicion_leon_detectada = None
     
     def ejecutar_accion(self, accion: AccionImpala) -> str:
         """
@@ -111,8 +113,29 @@ class Impala:
         self.velocidad_huida = 1
         self.tiempo_huyendo = 1
         
-        # Determinar dirección de huida (este u oeste aleatoriamente)
-        self.direccion_huida = random.choice([Direccion.ESTE, Direccion.OESTE])
+        # Determinar dirección de huida basada en la posición del león
+        if self.posicion_leon_detectada is not None:
+            # Huir en dirección opuesta al león
+            # Si león está en Este (3) → huir Oeste (7)
+            # Si león está en Oeste (7) → huir Este (3)
+            # Si león está en Norte (1) → huir Sur (5)
+            # Si león está en Sur (5) → huir Norte (1)
+            # Para otras posiciones, elegir el más lejano (Este u Oeste)
+            
+            if self.posicion_leon_detectada in [1, 2, 8]:  # Norte, NE, NO
+                self.direccion_huida = Direccion.SUR
+            elif self.posicion_leon_detectada in [5, 6, 4]:  # Sur, SO, SE
+                self.direccion_huida = Direccion.NORTE
+            elif self.posicion_leon_detectada == 3:  # Este
+                self.direccion_huida = Direccion.OESTE
+            elif self.posicion_leon_detectada == 7:  # Oeste
+                self.direccion_huida = Direccion.ESTE
+            else:
+                # Por defecto, elegir aleatoriamente
+                self.direccion_huida = random.choice([Direccion.ESTE, Direccion.OESTE])
+        else:
+            # Si no sabe dónde está el león, huir aleatoriamente (Este u Oeste)
+            self.direccion_huida = random.choice([Direccion.ESTE, Direccion.OESTE])
         
         return f"¡IMPALA INICIA HUIDA hacia {self.direccion_huida.name}! (Velocidad: {self.velocidad_huida} cuadros/T)"
     

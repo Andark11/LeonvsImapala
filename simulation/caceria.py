@@ -222,6 +222,9 @@ class Caceria:
         )
         
         if debe_huir and not self.impala.esta_huyendo:
+            # Informar al impala la posición del león para que huya inteligentemente
+            self.impala.posicion_leon_detectada = self.leon.posicion
+            
             # Forzar huida del impala
             self.impala.ejecutar_accion(AccionImpala.HUIR)
             
