@@ -696,6 +696,439 @@ LeonvsImapala/
   2. León ataca
   3. Distancia < 3 cuadros
 
+## 🎯 Acciones de los Agentes
+
+### Acciones del León
+
+El león tiene **4 acciones** disponibles durante la cacería:
+
+| Acción | Velocidad | Efecto | Visibilidad | Uso Estratégico |
+|--------|-----------|--------|-------------|-----------------|
+| **AVANZAR** | 1 cuadro/turno | Acercarse al impala | Se vuelve visible si estaba escondido | Movimiento sigiloso, usar cuando impala no mira |
+| **ESCONDERSE** | 0 cuadros/turno | León invisible para impala | Invisible | Evitar detección, especialmente al inicio |
+| **ATACAR** | 2 cuadros/turno | Sprint final hacia impala | Visible + ruidoso | Solo usar cuando distancia < 2 cuadros |
+| **SITUARSE** | Instantáneo | Cambiar posición cardinal (1-8) | Visible | Solo al inicio del episodio |
+
+**Detalles técnicos:**
+- `AVANZAR`: Rompe el escondite, avanza en línea recta hacia el centro
+- `ESCONDERSE`: Permanece en posición actual pero invisible (impala no puede verlo)
+- `ATACAR`: Una vez iniciado, continúa automáticamente hasta captura o escape
+- `SITUARSE`: Solo disponible en modo entrenamiento para seleccionar posición inicial
+
+### Acciones del Impala
+
+El impala tiene **5 acciones** (4 normales + 1 automática):
+
+| Acción | Efecto | Cono Visión | Velocidad | Descripción |
+|--------|--------|-------------|-----------|-------------|
+| **VER_IZQUIERDA** | Rotar vista 90° izquierda | 120° | 0 cuadros/turno | Escanea sector izquierdo |
+| **VER_DERECHA** | Rotar vista 90° derecha | 120° | 0 cuadros/turno | Escanea sector derecho |
+| **VER_FRENTE** | Mantener dirección actual | 120° | 0 cuadros/turno | Vigilancia continua |
+| **BEBER_AGUA** | Cabeza abajo, no ve nada | 0° (ciego) | 0 cuadros/turno | Estado vulnerable |
+| **HUIR** 🏃 | Escapar dirección opuesta | N/A | 1→2→3→4... cuadros/turno | Aceleración progresiva |
+
+**Condiciones que activan HUIR automáticamente:**
+1. Impala ve al león (no escondido) en su cono de visión
+2. León inicia ataque (impala escucha el ruido)
+3. León llega a distancia < 3 cuadros (instinto)
+
+**Aceleración en huida:**
+```
+Turno 1: 1 cuadro/turno
+Turno 2: 2 cuadros/turno
+Turno 3: 3 cuadros/turno
+...
+Turno N: N cuadros/turno
+```
+Una vez que velocidad_huida > 2 (velocidad ataque león), el escape es inevitable.
+
+## ⚖️ Sistema de Recompensas (Pesos de Acciones)
+
+El león aprende mediante **recompensas y penalizaciones** que guían su comportamiento hacia estrategias exitosas.
+
+### Tabla de Recompensas Principales
+
+| Evento | Recompensa | Descripción |
+|--------|------------|-------------|
+| **✅ Cacería exitosa** | **+100.0** | León captura al impala |
+| **❌ Cacería fallida** | **-50.0** | Impala escapa definitivamente |
+| **➕ Acercamiento** | **+1.0 × cuadros** | Por cada cuadro acercado |
+| **➖ Alejamiento** | **-2.0 × cuadros** | Por cada cuadro alejado |
+| **👁️ Detección temprana** | **-5.0 a -10.0** | Impala lo ve estando lejos |
+| **⏱️ Tiempo excesivo** | **-0.1 × turno** | Penalización por turno (incentiva eficiencia) |
+
+### Recompensas por Acción Específica
+
+Cada acción del león recibe una recompensa base según el contexto:
+
+#### 🦁 AVANZAR
+| Situación | Recompensa | Razón |
+|-----------|------------|-------|
+| Acercamiento exitoso | **+1.0 × cuadros** | Por cada cuadro acercado |
+| Alejamiento | **-2.0 × cuadros** | Penalización por retroceso |
+| Sale de escondite | **0.0** | Neutro (puede ser necesario) |
+| Penalización tiempo | **-0.1** | Cada turno penaliza eficiencia |
+
+#### 🌿 ESCONDERSE
+| Situación | Recompensa | Razón |
+|-----------|------------|-------|
+| Impala puede verlo | **+2.0** | Uso estratégico correcto |
+| Impala NO puede verlo | **-1.0** | Desperdicio de turno |
+| Ya estaba escondido | **-1.0** | Acción redundante |
+| Penalización tiempo | **-0.1** | Cada turno penaliza |
+
+#### ⚡ ATACAR
+| Situación | Recompensa | Razón |
+|-----------|------------|-------|
+| Distancia < 2 cuadros | **+5.0** | Timing perfecto |
+| Distancia 2-3 cuadros | **0.0** | Riesgoso pero viable |
+| Distancia > 3 cuadros | **-3.0** | Ataque prematuro |
+| Acercamiento (2 cuadros/T) | **+2.0** | Velocidad doble |
+| Si impala escapa | **-50.0** | Fracaso total |
+| Si captura | **+100.0** | Éxito total |
+
+#### 📍 SITUARSE
+| Situación | Recompensa | Razón |
+|-----------|------------|-------|
+| Cualquier posición (1-8) | **0.0** | Solo setup inicial |
+
+### Bonos y Penalizaciones Adicionales
+
+| Evento | Peso | Condición | Impacto |
+|--------|------|-----------|---------|
+| **👁️ Detección temprana** | **-5.0** | Distancia 3-4 cuadros | Moderado |
+| **👁️ Detección muy temprana** | **-10.0** | Distancia > 4 cuadros | Severo |
+| **🏃 Impala inicia huida** | **-5.0 a -10.0** | Según distancia | Reduce probabilidad éxito |
+| **⏱️ Tiempo excesivo** | **-0.1/turno** | Cada turno | Incentiva eficiencia |
+| **✅ Captura exitosa** | **+100.0** | Distancia ≤ 0.5 | Recompensa máxima |
+| **❌ Escape confirmado** | **-50.0** | Velocidad impala > león | Penalización máxima |
+
+### Fórmula de Recompensa Total por Turno
+
+\`\`\`python
+Recompensa_Turno = 
+    Recompensa_Acercamiento +           # ±1.0 a ±2.0 × cuadros
+    Recompensa_Acción_Específica +      # -3.0 a +5.0
+    Recompensa_Detección +              # -10.0 a 0.0
+    Penalización_Tiempo +               # -0.1 (siempre)
+    Recompensa_Final                    # +100.0 o -50.0 (si terminó)
+\`\`\`
+
+### 📊 Tabla Resumen de Todos los Pesos
+
+**Archivo fuente:** `learning/recompensas.py`
+
+| Constante | Valor | Tipo | Descripción |
+|-----------|-------|------|-------------|
+| `EXITO_CACERIA` | **+100.0** | Final | León captura al impala |
+| `FRACASO_CACERIA` | **-50.0** | Final | Impala escapa definitivamente |
+| `ACERCAMIENTO` | **+1.0** | Movimiento | Por cuadro acercado (×distancia) |
+| `ALEJAMIENTO` | **-2.0** | Movimiento | Por cuadro alejado (×distancia) |
+| `DETECCION_TEMPRANA` | **-5.0** | Penalización | Impala ve león (distancia 3-4) |
+| `DETECCION_MUY_TEMPRANA` | **-10.0** | Penalización | Impala ve león (distancia >4) |
+| `TIEMPO_EXCESIVO` | **-0.1** | Penalización | Por cada turno transcurrido |
+| `BUEN_USO_ESCONDERSE` | **+2.0** | Bono | Se esconde cuando visible |
+| `MAL_USO_ESCONDERSE` | **-1.0** | Penalización | Se esconde innecesariamente |
+| `ATAQUE_CERCANO` | **+5.0** | Bono | Ataca con distancia < 2 |
+| `ATAQUE_LEJANO` | **-3.0** | Penalización | Ataca con distancia > 3 |
+
+**Rango total de recompensas por turno:**
+- **Mínimo:** -68.1 (ataque lejos + detección + fracaso)
+- **Máximo:** +108.0 (ataque cerca + captura + acercamiento)
+- **Promedio exitoso:** +10 a +15 por turno
+- **Promedio fallido:** -5 a -10 por turno
+
+## 📋 Ejemplos Paso a Paso
+
+### 🏆 Cacería Exitosa (Estrategia Óptima)
+
+**Setup Inicial:**
+- León: Posición 1 (Norte), distancia 9.5 unidades
+- Impala: Centro (abrevadero), bebiendo agua
+- Estado: León visible, impala no mira hacia él
+
+---
+
+#### **Turno 1: Esconderse**
+
+**Estado:**
+- Distancia: 9.5 cuadros
+- Impala: Bebiendo (no puede ver)
+- León: Visible
+
+**Acción:** ESCONDERSE
+
+**Resultado:**
+- León ahora invisible
+- Distancia: 9.5 (sin cambio)
+
+**Recompensas:**
+```
++ Esconderse mal (impala no podía verlo):    -1.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 1:                             -1.1
+```
+
+---
+
+#### **Turno 2-5: Avanzar Oculto**
+
+**Estado:** (Turno 5 como ejemplo)
+- Distancia: 5.5 cuadros (avanzó 4 turnos × 1 cuadro/T)
+- Impala: Rotando vista (no detecta al león)
+- León: Escondido
+
+**Acción:** AVANZAR
+
+**Resultado:**
+- León avanza 1 cuadro
+- Nueva distancia: 4.5 cuadros
+
+**Recompensas:**
+```
++ Acercamiento (1 cuadro):                   +1.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 5:                             +0.9
+```
+
+**Acumulado turnos 2-5:**
+```
+Turno 2: +0.9 (9.5 → 8.5)
+Turno 3: +0.9 (8.5 → 7.5)
+Turno 4: +0.9 (7.5 → 6.5)
+Turno 5: +0.9 (6.5 → 5.5)
+```
+
+---
+
+#### **Turno 6-7: Continuar Avanzando**
+
+**Estado:** (Turno 7)
+- Distancia: 3.5 cuadros
+- Impala: Bebiendo
+- León: Escondido
+
+**Acción:** AVANZAR
+
+**Resultado:**
+- Nueva distancia: 2.5 cuadros
+
+**Recompensas:**
+```
++ Acercamiento (1 cuadro):                   +1.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 7:                             +0.9
+```
+
+---
+
+#### **Turno 8: Atacar**
+
+**Estado:**
+- Distancia: 1.5 cuadros
+- Impala: Bebiendo (vulnerable)
+- León: Escondido
+
+**Acción:** ATACAR (velocidad 2 cuadros/T)
+
+**Resultado:**
+- León corre 2 cuadros → distancia = 0 (CAPTURA)
+- Impala escucha el ataque → intenta huir
+- ¡Demasiado tarde! León lo alcanza
+
+**Recompensas:**
+```
++ Acercamiento (1.5 cuadros):                +1.5
++ Atacar cerca (distancia < 2):              +5.0
++ ÉXITO CACERÍA:                            +100.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 8:                            +106.4
+```
+
+---
+
+#### **Resumen Cacería Exitosa**
+
+```
+Total turnos: 8
+Recompensa total acumulada: +111.1
+
+Desglose:
+  Turno 1 (esconderse):        -1.1
+  Turnos 2-7 (avanzar):        +5.4  (6 turnos × +0.9)
+  Turno 8 (atacar + éxito):   +106.4
+  
+Estrategia clave:
+  ✓ Esconderse temprano
+  ✓ Avanzar gradualmente oculto
+  ✓ Atacar solo cuando está muy cerca
+  ✓ Aprovechar que impala bebe agua
+```
+
+---
+
+### ❌ Cacería Fallida (Errores Comunes)
+
+**Setup Inicial:**
+- León: Posición 3 (Este), distancia 9.5 unidades
+- Impala: Centro, mirando hacia el Este
+- Estado: León visible, impala MIRANDO HACIA ÉL
+
+---
+
+#### **Turno 1: Avanzar (ERROR)**
+
+**Estado:**
+- Distancia: 9.5 cuadros
+- Impala: Mirando al león
+- León: VISIBLE ⚠️
+
+**Acción:** AVANZAR
+
+**Resultado:**
+- León avanza 1 cuadro → distancia 8.5
+- ¡IMPALA LO VE! → Inicia huida hacia Oeste (dirección opuesta)
+
+**Recompensas:**
+```
++ Acercamiento (1 cuadro):                   +1.0
++ DETECCIÓN TEMPRANA (distancia > 4):       -10.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 1:                             -9.1
+```
+
+---
+
+#### **Turno 2: Perseguir (Inútil)**
+
+**Estado:**
+- Distancia: 8.5 cuadros
+- Impala: Huyendo a velocidad 1 cuadro/T
+- León: Avanzando a 1 cuadro/T
+
+**Acción:** AVANZAR
+
+**Resultado:**
+- León avanza 1 cuadro
+- Impala huye 1 cuadro
+- Distancia: 8.5 (sin cambio neto)
+
+**Recompensas:**
+```
++ Acercamiento/alejamiento:                   0.0  (sin cambio)
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 2:                             -0.1
+```
+
+---
+
+#### **Turno 3: Atacar Desesperado (ERROR)**
+
+**Estado:**
+- Distancia: 8.5 cuadros
+- Impala: Huyendo a velocidad 2 cuadros/T (acelera)
+- León: Distancia NO disminuye
+
+**Acción:** ATACAR
+
+**Resultado:**
+- León corre 2 cuadros → distancia 6.5
+- Impala huye 2 cuadros → distancia 8.5
+- Impala ahora más rápido que el león atacando
+
+**Recompensas:**
+```
++ Acercamiento (2 cuadros por león):         +2.0
++ Alejamiento (2 cuadros por impala):        -4.0
++ ATACAR LEJOS (distancia > 3):              -3.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 3:                             -5.1
+```
+
+---
+
+#### **Turnos 4-7: Persecución Imposible**
+
+**Estado:** (Turno 7)
+- Distancia: Aumentando constantemente
+- Impala: velocidad 5 cuadros/T
+- León: velocidad 2 cuadros/T (atacando)
+- Diferencia: Impala +3 cuadros/T más rápido
+
+**Resultado:**
+- Impala escapa definitivamente (velocidad > león)
+
+**Recompensas por turno:**
+```
++ Alejamiento (3 cuadros netos/turno):       -6.0
++ Penalización tiempo:                       -0.1
+= TOTAL por turno:                           -6.1
+```
+
+---
+
+#### **Turno 8: Fracaso**
+
+**Estado:**
+- Distancia: > 15 cuadros
+- Impala: Fuera de alcance
+
+**Resultado:**
+- Sistema determina: FRACASO (impala escapa)
+
+**Recompensas:**
+```
++ Alejamiento acumulado:                    -18.0
++ FRACASO CACERÍA:                          -50.0
++ Penalización tiempo:                       -0.1
+= TOTAL TURNO 8:                            -68.1
+```
+
+---
+
+#### **Resumen Cacería Fallida**
+
+```
+Total turnos: 8
+Recompensa total acumulada: -88.5
+
+Desglose:
+  Turno 1 (detección):         -9.1
+  Turno 2 (sin cambio):        -0.1
+  Turno 3 (ataque prematuro):  -5.1
+  Turnos 4-7 (persecución):   -24.4  (4 turnos × -6.1)
+  Turno 8 (fracaso):          -68.1
+  
+Errores críticos:
+  ✗ NO esconderse cuando impala lo ve
+  ✗ Avanzar visible desde lejos
+  ✗ Atacar prematuramente (distancia > 3)
+  ✗ No considerar aceleración del impala
+```
+
+---
+
+### 📊 Comparación Estrategias
+
+| Aspecto | Cacería Exitosa | Cacería Fallida |
+|---------|-----------------|-----------------|
+| **Turno detección** | Turno 8 (cerca) | Turno 1 (lejos) |
+| **Uso esconderse** | Turno 1 (proactivo) | Nunca (reactivo) |
+| **Distancia ataque** | 1.5 cuadros ✓ | 8.5 cuadros ✗ |
+| **Turnos totales** | 8 | 8 |
+| **Recompensa final** | **+111.1** | **-88.5** |
+| **Diferencia** | - | **199.6 puntos** |
+
+### 🧠 Lecciones Aprendidas por el León
+
+Después de miles de episodios, el león aprende:
+
+1. **Esconderse primero** → Evita detección temprana (+2.0 vs -10.0)
+2. **Avanzar oculto** → Maximiza acercamiento sin penalización
+3. **Atacar cerca** → Solo cuando distancia < 2 cuadros (+5.0 vs -3.0)
+4. **Timing perfecto** → Atacar cuando impala bebe o no mira
+5. **No perseguir** → Si es detectado lejos, mejor reintentar
+
 ## 🧪 Tests Unitarios
 
 \`\`\`bash
