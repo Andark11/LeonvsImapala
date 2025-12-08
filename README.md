@@ -13,18 +13,46 @@ Sistema de aprendizaje por refuerzo donde un león aprende a cazar un impala med
 - ✅ **Persistencia** de modelos entrenados
 - ✅ **Tests unitarios** completos (9/9 pasando)
 
-## 🚀 Inicio Rápido
+## 🚀 Instalación y Setup
+
+### Requerimientos
+
+- **Python**: 3.8 o superior
+- **Sistema Operativo**: Linux, macOS, Windows
+- **Dependencias**: Ninguna (solo biblioteca estándar de Python)
+
+### Pasos de Instalación
+
+1. **Clonar el repositorio**
+   \`\`\`bash
+   git clone https://github.com/Andark11/LeonvsImapala.git
+   cd LeonvsImapala
+   \`\`\`
+
+2. **Verificar versión de Python**
+   \`\`\`bash
+   python --version
+   # Debe mostrar Python 3.8 o superior
+   \`\`\`
+
+3. **Ejecutar el sistema**
+   \`\`\`bash
+   python main.py
+   \`\`\`
+
+4. **Ejecutar tests (opcional)**
+   \`\`\`bash
+   python tests/test_basico.py
+   # Resultado esperado: 9/9 tests pasando ✓
+   \`\`\`
+
+### Inicio Rápido (Script Bash)
+
+También puedes usar el script de inicio rápido:
 
 \`\`\`bash
-# Clonar repositorio
-git clone https://github.com/Andark11/LeonvsImapala.git
-cd LeonvsImapala
-
-# Ejecutar
-python main.py
+bash INICIO_RAPIDO.sh
 \`\`\`
-
-**Requisitos:** Python 3.8+ (sin dependencias externas)
 
 ## 📖 Uso
 
@@ -94,7 +122,7 @@ Q = {
 El león aprende actualizando los valores Q mediante la **ecuación de Bellman**:
 
 \`\`\`
-Q(s,a) ← Q(s,a) + α[r + γ·max Q(s',a') - Q(s,a)]
+Q(s,a) -> Q(s,a) + α[r + γ·max Q(s',a') - Q(s,a)]
 \`\`\`
 
 **Desglose de la ecuación:**
@@ -363,7 +391,282 @@ grid_y = int(9.5 × 1.9) + 9 = 18 + 9 = 27 → ajustado a 18 (límite grid)
 - **Posiciones**: 8 puntos cardinales + 1 centro (abrevadero)
 - **Rango ángulos**: 0° a 315° (incrementos de 45°)
 
-## 📁 Estructura
+## � Base de Conocimientos
+
+El sistema incluye una **base de conocimientos** que permite al león aplicar experiencias aprendidas a situaciones nuevas mediante **generalización**.
+
+### ¿Qué es la Base de Conocimientos?
+
+La base de conocimientos almacena patrones de comportamiento exitosos que el león ha aprendido durante el entrenamiento. Está implementada en el módulo `knowledge/base_conocimientos.py`.
+
+**Estructura:**
+\`\`\`python
+{
+    'situacion_tipo': {
+        'condiciones': {
+            'distancia_minima': 3.0,
+            'distancia_maxima': 5.0,
+            'impala_bebiendo': True,
+            'leon_escondido': True
+        },
+        'accion_recomendada': 'atacar',
+        'exitos': 145,
+        'intentos': 200,
+        'tasa_exito': 0.725
+    }
+}
+\`\`\`
+
+### Tipos de Conocimiento Almacenado
+
+1. **Patrones de distancia**: Qué acción tomar según la distancia al impala
+   - Distancia > 7: Esconderse y avanzar
+   - Distancia 3-7: Avanzar cautelosamente
+   - Distancia < 3: Atacar si está escondido
+
+2. **Patrones de visibilidad**: Cómo actuar según si el impala puede verlo
+   - Impala bebiendo → Avanzar rápidamente
+   - Impala mirando → Esconderse primero
+
+3. **Patrones de posición**: Mejores posiciones iniciales para cazar
+   - Posiciones laterales (2, 4, 6, 8) tienen mayor éxito
+   - Posiciones cardinales (1, 3, 5, 7) requieren más estrategia
+
+### Generalización de Conocimientos
+
+El módulo `knowledge/generalizacion.py` permite aplicar conocimiento aprendido a situaciones similares:
+
+**Proceso:**
+1. **Identificar situación actual**: Extraer características del estado (distancia, visibilidad, etc.)
+2. **Buscar patrones similares**: Encontrar situaciones conocidas con características parecidas
+3. **Calcular similitud**: Medir qué tan parecida es la situación actual a las conocidas
+4. **Aplicar conocimiento**: Usar la acción que funcionó en situaciones similares
+5. **Actualizar base**: Si la acción funciona, reforzar el patrón
+
+**Ejemplo de generalización:**
+\`\`\`python
+# Situación aprendida: distancia=4.2, impala_bebe=True, escondido=True → atacar (éxito)
+# Situación nueva:     distancia=4.5, impala_bebe=True, escondido=True
+# Similitud: 95% → Aplicar "atacar" con alta confianza
+\`\`\`
+
+### Ventajas de la Base de Conocimientos
+
+- ✅ **Aprendizaje más rápido**: No necesita explorar todas las situaciones desde cero
+- ✅ **Mejor generalización**: Aplica experiencias previas a situaciones nuevas
+- ✅ **Conocimiento interpretable**: Humanos pueden entender qué aprendió el león
+- ✅ **Transferencia de conocimiento**: Puede compartirse entre diferentes modelos
+
+## 🎓 Proceso de Entrenamiento
+
+El entrenamiento del león sigue un ciclo de aprendizaje por refuerzo supervisado por Q-Learning.
+
+### Fases del Entrenamiento
+
+#### 1. Inicialización
+\`\`\`python
+# Configuración inicial
+alpha = 0.05      # Tasa de aprendizaje (qué tan rápido aprende)
+gamma = 0.9       # Factor de descuento (importancia del futuro)
+epsilon = 1.0     # Exploración inicial (100% aleatorio)
+episodios = 100000
+\`\`\`
+
+#### 2. Ciclo de Episodios
+
+**Para cada episodio de cacería:**
+
+1. **Setup inicial**
+   \`\`\`python
+   - Posición aleatoria del león (1-8)
+   - Impala en el abrevadero (centro)
+   - Tabla Q cargada (si existe modelo previo)
+   \`\`\`
+
+2. **Loop de turnos** (máximo 50 turnos por episodio)
+   \`\`\`python
+   while caceria_activa:
+       # a) Observar estado actual
+       estado = obtener_estado_mundo()
+       
+       # b) Decidir acción (epsilon-greedy)
+       if random() < epsilon:
+           accion = aleatoria()      # Explorar
+       else:
+           accion = mejor_Q(estado)  # Explotar
+       
+       # c) Ejecutar acción
+       nuevo_estado, recompensa, terminado = ejecutar(accion)
+       
+       # d) Actualizar Q-Learning
+       Q[estado][accion] += alpha * (
+           recompensa + gamma * max(Q[nuevo_estado]) - Q[estado][accion]
+       )
+       
+       # e) Verificar fin
+       if terminado:
+           break
+   \`\`\`
+
+3. **Registro de resultados**
+   \`\`\`python
+   - Éxito/fracaso de la cacería
+   - Recompensa total acumulada
+   - Número de turnos utilizados
+   - Actualización de estadísticas
+   \`\`\`
+
+4. **Decremento de epsilon**
+   \`\`\`python
+   epsilon = max(0.1, epsilon - (0.9 / episodios))
+   # Reduce exploración gradualmente
+   # Episodio 1:     ε = 1.0   (100% exploración)
+   # Episodio 50000: ε ≈ 0.55  (55% exploración)
+   # Episodio 100000: ε = 0.1   (10% exploración)
+   \`\`\`
+
+#### 3. Guardado del Modelo
+
+Cada cierto número de episodios (ej: cada 10,000):
+\`\`\`python
+{
+    "q_table": {...},           # Tabla Q completa
+    "episodios": 100000,        # Episodios completados
+    "exitos": 10245,           # Cacerías exitosas
+    "tasa_exito": 0.10245,     # 10.245% éxito
+    "epsilon_final": 0.1,      # Exploración final
+    "alpha": 0.05,             # Tasa de aprendizaje
+    "gamma": 0.9               # Factor de descuento
+}
+\`\`\`
+
+### Progresión Típica del Entrenamiento
+
+| Episodios | Tasa Éxito | Epsilon | Comportamiento |
+|-----------|------------|---------|----------------|
+| 0 - 10,000 | 2-4% | 1.0 → 0.91 | Exploración caótica, aprende básicos |
+| 10,000 - 30,000 | 4-7% | 0.91 → 0.73 | Identifica patrones, mejora estrategia |
+| 30,000 - 60,000 | 7-9% | 0.73 → 0.46 | Consolida conocimiento, más consistente |
+| 60,000 - 100,000 | 9-12% | 0.46 → 0.1 | Explota conocimiento, ajustes finos |
+
+### Monitoreo del Entrenamiento
+
+Durante el entrenamiento, el sistema muestra:
+\`\`\`
+Episodio 45000/100000 | Éxitos: 3402 | Tasa: 7.56% | ε: 0.595
+Últimos 1000: 78 éxitos (7.8%)
+Recompensa promedio: +12.4
+\`\`\`
+
+## 🔄 Proceso de Adquisición de Conocimientos
+
+El león adquiere conocimientos mediante tres mecanismos complementarios:
+
+### 1. Aprendizaje por Refuerzo (Q-Learning)
+
+**Mecanismo principal** de adquisición de conocimientos:
+
+\`\`\`
+Experiencia → Actualización Q → Mejora de política → Nueva experiencia
+\`\`\`
+
+**Proceso detallado:**
+1. **Exploración**: Prueba acciones en diferentes estados
+2. **Recompensa**: Recibe retroalimentación (+100 éxito, -50 fracaso, +1 acercamiento)
+3. **Actualización**: Ajusta valores Q según ecuación de Bellman
+4. **Refinamiento**: Mejora estimaciones con cada experiencia
+
+**Ejemplo de adquisición:**
+\`\`\`
+Episodio 1:
+  Estado: (pos=3, dist=9.5, escondido=False)
+  Acción: avanzar → Impala detecta → Huye
+  Recompensa: -50
+  Q[estado][avanzar] = 0 + 0.05(-50) = -2.5
+  Conocimiento: "No avanzar visible desde lejos"
+
+Episodio 500:
+  Mismo estado
+  Acción: esconderse → Oculto → Puede avanzar después
+  Recompensa: +5
+  Q[estado][esconderse] = 20 + 0.05(5 + 0.9(30) - 20) = 21.35
+  Conocimiento: "Esconderse primero desde lejos es mejor"
+\`\`\`
+
+### 2. Generalización de Patrones
+
+**Mecanismo secundario** que acelera el aprendizaje:
+
+\`\`\`python
+# El león identifica que situaciones similares requieren acciones similares
+patron_identificado = {
+    'caracteristicas': ['distancia_corta', 'impala_bebiendo', 'escondido'],
+    'accion': 'atacar',
+    'confianza': 0.85
+}
+
+# Aplica este patrón a nuevas situaciones con características similares
+\`\`\`
+
+**Proceso:**
+1. **Extracción de características**: Identifica atributos clave del estado
+2. **Clustering**: Agrupa estados similares
+3. **Pattern matching**: Encuentra patrones recurrentes
+4. **Aplicación**: Usa patrones exitosos en situaciones nuevas
+
+### 3. Persistencia y Transferencia
+
+**Mecanismo de memoria a largo plazo:**
+
+\`\`\`python
+# Guardar conocimiento
+modelo = {
+    'q_table': tabla_Q,              # Conocimiento específico
+    'patrones': patrones_exitosos,   # Conocimiento generalizado
+    'estadisticas': metricas          # Rendimiento histórico
+}
+guardar_modelo("leon_experto.json", modelo)
+
+# Cargar conocimiento
+modelo_previo = cargar_modelo("leon_experto.json")
+# El león continúa aprendiendo desde donde quedó
+\`\`\`
+
+**Ventajas:**
+- ✅ No pierde conocimiento entre sesiones
+- ✅ Puede entrenar incremental (agregar más episodios)
+- ✅ Permite comparar diferentes estrategias
+- ✅ Facilita transferencia de conocimiento
+
+### Métricas de Conocimiento Adquirido
+
+El sistema evalúa la calidad del conocimiento mediante:
+
+1. **Tasa de éxito**: % de cacerías exitosas
+   \`\`\`python
+   tasa_exito = cacerías_exitosas / total_cacerías
+   # Objetivo: > 10% (el impala tiene ventaja natural)
+   \`\`\`
+
+2. **Recompensa promedio**: Valor promedio obtenido por episodio
+   \`\`\`python
+   recompensa_promedio = suma_recompensas / total_episodios
+   # Positivo = más éxitos que fracasos
+   \`\`\`
+
+3. **Convergencia**: Estabilización de valores Q
+   \`\`\`python
+   convergencia = desviacion_estandar(ultimos_1000_episodios)
+   # Baja desviación = conocimiento estable
+   \`\`\`
+
+4. **Cobertura de estados**: % de estados explorados
+   \`\`\`python
+   cobertura = estados_visitados / total_estados_posibles
+   # Mayor cobertura = conocimiento más completo
+   \`\`\`
+
+## �📁 Estructura
 
 \`\`\`
 LeonvsImapala/
@@ -462,13 +765,17 @@ Tiempo: ~15 minutos
 
 ## 📄 Licencia
 
-MIT License - Ver archivo LICENSE para detalles
+Sin licencia, todos los derechos reservados.
 
-## 👨‍💻 Autor
+## 👨‍💻 Autores
 
 **Proyecto Final - Sistemas Inteligentes**  
 Implementación educativa de Q-Learning aplicado a caza predador-presa
 
+Alvarado Martínez Miguel Eduardo
+García Retana Alba Sughey
+Soria Cabrera Andrés
+Sosa Pérez Dariana Montserrat
 ---
 
 **Estado:** ✅ Sistema completo y funcional  
