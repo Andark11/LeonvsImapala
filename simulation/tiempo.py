@@ -3,7 +3,7 @@ Módulo de gestión del tiempo de simulación.
 Maneja las unidades de tiempo T.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from dataclasses import dataclass
 
 
@@ -80,6 +80,15 @@ class TiempoSimulacion:
             Lista de eventos registrados
         """
         return self.historia.copy()
+    
+    def obtener_ultimo_evento(self) -> Optional[EventoTiempo]:
+        """
+        Obtiene el último evento registrado.
+        
+        Returns:
+            Último evento o None si no hay eventos
+        """
+        return self.historia[-1] if self.historia else None
     
     def obtener_evento(self, tiempo: int) -> EventoTiempo:
         """
