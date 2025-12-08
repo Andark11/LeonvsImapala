@@ -266,40 +266,108 @@ python main.py## 🎮 Uso del Sistema
 
 
 
-## 🧠 Sistema de AprendizajeEl programa ofrece 5 opciones:
+## 🧠 Sistema de Aprendizaje
 
+### ¿Qué es Q-Learning?
 
+**Q-Learning** es un algoritmo de **Aprendizaje por Refuerzo** (Reinforcement Learning) que permite a un agente aprender la mejor acción a tomar en cada situación mediante prueba y error, sin necesidad de un modelo explícito del entorno.
 
-### Q-Learning1. **Sistema de Entrenamiento** - Entrenar al león con miles de episodios
+#### Concepto Fundamental
 
-2. **Visualización Paso a Paso** - Ver cacerías sin entrenamiento (decisiones aleatorias)
+El león aprende construyendo una **tabla Q** que mapea cada combinación de estado-acción a un valor que representa "qué tan buena" es esa acción en ese estado. A través de miles de cacerías, el león descubre qué acciones maximizan su probabilidad de éxito.
 
-El león aprende mediante la ecuación de Bellman:3. **Visualización con León Entrenado** - Ver cacerías con león que usa conocimiento aprendido
+#### Proceso de Aprendizaje
 
-4. **Acerca del Proyecto** - Información detallada
+1. **Exploración**: Al inicio, el león prueba acciones aleatorias para descubrir el entorno
+2. **Experiencia**: Cada cacería genera experiencias (estado → acción → recompensa → nuevo estado)
+3. **Actualización**: Los valores Q se actualizan basándose en las recompensas obtenidas
+4. **Explotación**: Con el tiempo, el león prefiere acciones que históricamente funcionaron mejor
+5. **Convergencia**: Después de muchos episodios, el león desarrolla una estrategia óptima
 
-```5. **Salir**
+### La Ecuación de Bellman
 
+El león aprende mediante la **ecuación de Bellman** para actualización de valores Q:
+
+```
 Q(s,a) ← Q(s,a) + α[r + γ·max Q(s',a') - Q(s,a)]
+```
 
-```### Ejemplo: Entrenamiento
+**Componentes de la ecuación:**
 
+- **`Q(s,a)`**: Valor Q actual para el estado `s` y acción `a`
+- **`α`** (alpha): **Tasa de aprendizaje** = 0.05
+  - Controla qué tan rápido se actualizan los valores
+  - Valor bajo (0.05) = aprendizaje gradual y estable
+  
+- **`γ`** (gamma): **Factor de descuento** = 0.9
+  - Importancia de recompensas futuras vs inmediatas
+  - 0.9 = el león valora mucho las consecuencias futuras
+  
+- **`r`**: **Recompensa inmediata** obtenida
+  - +100 por captura exitosa
+  - -50 por fracaso
+  - +1 por acercarse
+  
+- **`s'`**: **Nuevo estado** después de la acción
+- **`max Q(s',a')`**: Mejor valor Q posible en el nuevo estado
+  - Estimación del valor futuro óptimo
 
+#### Interpretación Intuitiva
 
-**Donde:**```bash
+La ecuación dice: *"El valor de tomar la acción A en el estado S es la recompensa inmediata más el mejor valor que puedo obtener en el futuro, ajustado por lo que ya sabía"*.
 
-- `s`: Estado actual (posición león, distancia impala, acción impala, visibilidad)python main.py
+### Política Epsilon-Greedy
 
-- `a`: Acción tomada (avanzar, esconderse, atacar)# Seleccionar opción 1
+El león balancea **exploración** vs **explotación** mediante epsilon (ε):
 
-- `r`: Recompensa obtenida# Configurar número de episodios (ej: 1000)
+```python
+if random() < epsilon:
+    acción = aleatoria()  # EXPLORAR: probar algo nuevo
+else:
+    acción = mejor_conocida()  # EXPLOTAR: usar lo aprendido
+```
 
-- `s'`: Estado siguiente# Seleccionar posiciones iniciales (Enter para todas)
+**Decaimiento de Epsilon:**
+- Inicio: ε = 1.0 (100% exploración)
+- Decremento: ε -= 0.9/episodios_totales
+- Final: ε = 0.1 (10% exploración, 90% explotación)
 
-- `α`: Tasa de aprendizaje (0.05)# Esperar a que termine el entrenamiento
+Esto significa que el león empieza probando todo aleatoriamente, y gradualmente confía más en su experiencia.
 
-- `γ`: Factor de descuento (0.9)# Guardar el conocimiento aprendido
+### Representación de Estados
 
+Cada estado captura la situación completa del mundo:
+
+```python
+Estado = {
+    'posicion_leon': int,           # 1-8 (posición discreta)
+    'distancia_impala': float,      # Redondeada a 0.5 unidades
+    'accion_impala': str,           # 'ver_izq', 'ver_der', 'beber', etc.
+    'leon_escondido': bool,         # ¿León oculto?
+    'impala_puede_ver': bool        # ¿Impala puede ver al león?
+}
+```
+
+La tabla Q almacena valores para cada combinación posible de (Estado, Acción).
+
+### Ejemplo de Aprendizaje
+
+**Episodio 1** (sin experiencia):
+```
+Estado: León en pos 1, distancia 9.5, impala bebiendo
+Q(estado, atacar) = 0 (valor inicial)
+Acción: Atacar (aleatorio)
+Resultado: Impala detecta y escapa (-50)
+Actualización: Q(estado, atacar) = -2.5 (ahora sabe que atacar lejos es malo)
+```
+
+**Episodio 1000** (con experiencia):
+```
+Estado: León en pos 1, distancia 9.5, impala bebiendo
+Q(estado, esconderse) = 45 (mejor opción conocida)
+Q(estado, avanzar) = 30
+Q(estado, atacar) = -2.5 (ya aprendió que es mala idea)
+Acción: Esconderse (explota conocimiento)
 ```
 
 ### Sistema de Recompensas
@@ -324,33 +392,236 @@ Q(s,a) ← Q(s,a) + α[r + γ·max Q(s',a') - Q(s,a)]
 
 ### Generalización
 
-## 🧪 Tests
+## 🧪 Tests Unitarios
+
+El proyecto incluye una suite completa de tests que valida todas las funciones críticas del sistema.
+
+### Ejecutar Tests
+
+```bash
+# Ejecutar suite completa de tests
+python tests/test_basico.py
+```
+
+### Tests Incluidos
+
+#### 1. **Test de Abrevadero** ✅
+- Validación de coordenadas de las 8 posiciones
+- Cálculo correcto de distancias
+- Verificación del RADIO = 9.5 unidades
+
+#### 2. **Test de Acciones del León** ✅
+- Avanzar: Movimiento de 1 cuadro/turno
+- Esconderse: Cambio de estado de visibilidad
+- Atacar: Velocidad de 2 cuadros/turno
+
+#### 3. **Test de Acciones del Impala** ✅
+- Ver (izquierda, derecha, frente)
+- Beber agua
+- Huir con aceleración progresiva
+
+#### 4. **Test de Base de Conocimientos** ✅
+- Almacenamiento de estados y valores Q
+- Recuperación de mejores acciones
+- Actualización de tabla Q
+
+#### 5. **Test de Q-Learning** ✅
+- Selección de acciones (exploración vs explotación)
+- Política epsilon-greedy
+- Validación de tipos de decisión
+
+#### 6. **Test de Sistema de Recompensas** ✅
+- Recompensa por éxito: +100
+- Penalización por fracaso: -50
+- Recompensas por acercamiento
+
+#### 7. **Test de Cacería Completa** ✅
+- Ejecución completa de una cacería
+- Validación de resultados (éxito/fracaso)
+- Estrategia simple de prueba
+
+#### 8. **Test de Cacería Turno a Turno** ✅
+- Ejecución de turnos individuales
+- Registro de eventos en el tiempo
+- Verificación de historial
+
+### Resultados Esperados
+
+```
+Ejecutando tests básicos...
+
+✓ Abrevadero - Coordenadas
+✓ Abrevadero - Distancia
+✓ León - Acciones
+✓ Impala - Acciones
+✓ Base Conocimientos
+✓ Q-Learning - Selección
+✓ Sistema Recompensas
+✓ Cacería Completa
+✓ Cacería Turno a Turno
+
+==================================================
+Resultados: 9 exitosos, 0 fallidos
+==================================================
+```
+
+### Cobertura
+
+Los tests cubren:
+- ✅ **Entorno**: Coordenadas, distancias, geometría
+- ✅ **Agentes**: Todas las acciones de león e impala
+- ✅ **Aprendizaje**: Q-Learning, recompensas, estados
+- ✅ **Simulación**: Cacerías completas y por turnos
+- ✅ **Conocimiento**: Almacenamiento y recuperación
+
+### Generalización
 
 El sistema abstrae estados específicos en **patrones generales**:
 
-- Distancias se redondean a 0.5 cuadros```bash
+- Distancias se redondean a 0.5 cuadros
+- Estados similares comparten conocimiento
+- Tabla Q más compacta y eficiente
 
-- Estados similares comparten conocimiento# Ejecutar suite de tests
+## 🌍 Entorno de Simulación
 
-- Tabla Q más compacta y eficientepython tests/test_basico.py
+### Sistema de Coordenadas Polares
 
+El proyecto utiliza **coordenadas polares** para representar las posiciones del león alrededor del abrevadero, lo cual es más natural para este escenario circular.
 
+#### ¿Por qué Coordenadas Polares?
 
-## 🌍 Entorno de Simulación# O probar módulos individuales
+En lugar de usar coordenadas cartesianas tradicionales (x, y), usamos **coordenadas polares (r, θ)**:
 
-python environment.py
+- **`r`** (radio): Distancia desde el centro del abrevadero
+- **`θ`** (theta): Ángulo en grados (0° = Norte)
 
-### Abrevaderopython agents/leon.py
+**Ventajas para este problema:**
 
-python knowledge/base_conocimientos.py
+1. **Naturalidad del escenario**: El abrevadero es circular, el león rodea al impala
+2. **Simplificación de cálculos**: Las 8 posiciones iniciales están a la misma distancia (r = 9.5)
+3. **Movimiento intuitivo**: Avanzar = reducir r (acercarse al centro)
+4. **Representación compacta**: Solo necesitamos ángulo y distancia
 
-- **Grid**: 19×19 cuadrospython learning/q_learning.py
+#### Las 8 Posiciones Iniciales
 
-- **Centro**: (9.5, 9.5) - Posición del abrevadero```
+El león puede empezar en 8 posiciones equidistantes alrededor del abrevadero:
 
+```
+                    Posición 1
+                      θ = 0°
+                      Norte
+                        🦁
+                        |
+                        |
+    Pos 8              |              Pos 2
+    θ=315°             |              θ=45°
+    Noroeste -------(CENTRO)------- Noreste
+                    IMPALA🦌
+                        |
+    Pos 7              |              Pos 3
+    θ=270°             |              θ=90°
+    Oeste ----------(CENTRO)--------- Este
+                        |
+                        |
+                    Posición 5
+                      θ=180°
+                       Sur
+                    Pos 4  Pos 6
+                   θ=135° θ=225°
+```
+
+**Fórmula de conversión:**
+```python
+θ = (posicion - 1) × 45°
+
+Posición 1: θ = 0°    (Norte)
+Posición 2: θ = 45°   (Noreste)
+Posición 3: θ = 90°   (Este)
+...
+Posición 8: θ = 315°  (Noroeste)
+```
+
+#### Conversión Polar → Cartesiana
+
+Para la visualización en el grid 19×19, convertimos coordenadas polares a cartesianas:
+
+```python
+x = r × sin(θ)
+y = r × cos(θ)
+
+# Ejemplo Posición 1 (Norte):
+r = 9.5, θ = 0°
+x = 9.5 × sin(0°) = 0
+y = 9.5 × cos(0°) = 9.5
+Coordenadas: (0, 9.5)
+
+# Ejemplo Posición 3 (Este):
+r = 9.5, θ = 90°
+x = 9.5 × sin(90°) = 9.5
+y = 9.5 × cos(90°) = 0
+Coordenadas: (9.5, 0)
+```
+
+#### Movimiento del León
+
+Cuando el león **avanza** o **ataca**, se mueve en línea recta hacia el centro:
+
+```python
+# Avanzar 1 cuadro:
+nueva_r = r - 1
+nueva_θ = θ  # El ángulo se mantiene
+
+# Ejemplo: León en pos 1, avanza 3 turnos
+Turno 0: r=9.5, θ=0° → (0, 9.5)
+Turno 1: r=8.5, θ=0° → (0, 8.5)  # Avanzó 1
+Turno 2: r=7.5, θ=0° → (0, 7.5)  # Avanzó 1
+Turno 3: r=6.5, θ=0° → (0, 6.5)  # Avanzó 1
+```
+
+#### Visualización en Grid 19×19
+
+El grid usa coordenadas cartesianas para facilitar la visualización:
+
+- **Centro del grid**: (9.5, 9.5)
+- **Escala**: 1.9 (factor de conversión polar → grid)
+- **Origen polar** (0, 0) → **Centro grid** (9.5, 9.5)
+
+```
+Grid Cartesiano 19×19:
+┌─────────────────────┐
+│ · · · · · 🦁 · · · · │  ← León en (9.5, 18.05)
+│ · · · · · · · · · · │     Polar: r=9.5, θ=0°
+│ · · · · · · · · · · │
+│ · · · · · · · · · · │
+│ · · · · ▓▓▓ · · · · │  ← Abrevadero
+│ · · · · ▓🦌▓ · · · · │     Centro (9.5, 9.5)
+│ · · · · ▓▓▓ · · · · │
+│ · · · · · · · · · · │
+└─────────────────────┘
+```
+
+### Abrevadero
+
+- **Grid**: 19×19 cuadros
+- **Centro**: (9.5, 9.5) - Posición del abrevadero
 - **RADIO**: 9.5 cuadros - Distancia inicial león-impala
+- **Coordenadas**: Polares (r, θ) para el león, Cartesianas (x, y) para visualización
 
-- **Coordenadas**: Polares (r, θ) para el león, Cartesianas (x, y) para visualización## 📋 Reglas del Sistema
+### Cálculo de Distancias
+
+La distancia león-impala se calcula con la **fórmula euclidiana**:
+
+```python
+# Si león está en (x_leon, y_leon) e impala en centro (0, 0)
+distancia = √(x_leon² + y_leon²)
+
+# En coordenadas polares es simplemente:
+distancia = r  (el radio actual del león)
+```
+
+**Umbral de captura:** distancia ≤ 0.5 unidades
+
+## 📋 Reglas del Sistema
 
 
 
