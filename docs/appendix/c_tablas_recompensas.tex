@@ -1,0 +1,378 @@
+\chapter{Tablas Completas de Recompensas}
+
+\section{Tabla de Pesos Base}
+
+\begin{table}[H]
+\centering
+\caption{Sistema completo de pesos de recompensa}
+\label{tab:pesos-completo}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Constante} & \textbf{Valor} & \textbf{Descripción} \\
+\hline
+\hline
+\texttt{EXITO\_CACERIA} & +100.0 & León atrapa al impala exitosamente \\
+\hline
+\texttt{FRACASO\_CACERIA} & -50.0 & Impala logra huir del abrevadero \\
+\hline
+\texttt{ACERCAMIENTO} & +1.0/cuadro & León reduce distancia al impala \\
+\hline
+\texttt{ALEJAMIENTO} & -2.0/cuadro & León aumenta distancia al impala \\
+\hline
+\texttt{DETECCION\_TEMPRANA} & -5.0 & Impala detecta león (distancia 4-7) \\
+\hline
+\texttt{DETECCION\_MUY\_TEMPRANA} & -10.0 & Impala detecta león (distancia $>$7) \\
+\hline
+\texttt{TIEMPO\_EXCESIVO} & -0.1/turno & Penalización por turno consumido \\
+\hline
+\texttt{BUEN\_USO\_ESCONDERSE} & +2.0 & Esconderse cuando distancia $>$5 \\
+\hline
+\texttt{MAL\_USO\_ESCONDERSE} & -1.0 & Esconderse cuando distancia $<$3 \\
+\hline
+\texttt{ATAQUE\_CERCANO} & +5.0 & Atacar cuando distancia $\leq$2 \\
+\hline
+\texttt{ATAQUE\_LEJANO} & -3.0 & Atacar cuando distancia $>$3 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Recompensas por Acción del León}
+
+\subsection{AVANZAR}
+
+\begin{table}[H]
+\centering
+\caption{Recompensas para acción AVANZAR según distancia}
+\label{tab:avanzar-detalle}
+\begin{tabular}{|c|c|l|}
+\hline
+\textbf{Distancia} & \textbf{Recompensa} & \textbf{Componentes} \\
+\hline
+\hline
+$>$7 cuadros & +1.0 a +2.0 & ACERCAMIENTO \\
+ & & Si detectado: -10.0 (DETECCION\_MUY\_TEMPRANA) \\
+\hline
+4-7 cuadros & +1.0 a +2.0 & ACERCAMIENTO \\
+ & & Si detectado: -5.0 (DETECCION\_TEMPRANA) \\
+\hline
+2-3 cuadros & +1.0 a +1.5 & ACERCAMIENTO (acercamiento final) \\
+\hline
+$<$2 cuadros & +1.0 & ACERCAMIENTO \\
+ & & Recomendación: cambiar a ATACAR \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Fórmula exacta:}
+\begin{equation}
+R_{\text{avanzar}} = \begin{cases}
+\text{ACERCAMIENTO} \times \Delta d + \text{penalizaciones} & \text{si se acerca} \\
+\text{ALEJAMIENTO} \times |\Delta d| & \text{si se aleja} \\
+-0.1 & \text{por turno}
+\end{cases}
+\end{equation}
+
+Donde $\Delta d = d_{\text{antes}} - d_{\text{después}}$
+
+\subsection{ESCONDERSE}
+
+\begin{table}[H]
+\centering
+\caption{Recompensas para acción ESCONDERSE según contexto}
+\label{tab:esconderse-detalle}
+\begin{tabular}{|c|c|c|l|}
+\hline
+\textbf{Distancia} & \textbf{Detectado} & \textbf{Recompensa} & \textbf{Razón} \\
+\hline
+\hline
+$>$5 cuadros & NO & +2.0 & BUEN\_USO (sigilo efectivo) \\
+\hline
+$>$5 cuadros & SÍ & +0.5 & Uso tardío pero útil \\
+\hline
+3-5 cuadros & NO & +1.0 & Uso aceptable \\
+\hline
+3-5 cuadros & SÍ & -0.5 & Ya detectado, poco efectivo \\
+\hline
+$<$3 cuadros & NO & -1.0 & MAL\_USO (muy cerca, atacar mejor) \\
+\hline
+$<$3 cuadros & SÍ & -2.0 & Inútil: detectado y cerca \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Regla heurística:}
+\begin{itemize}
+    \item \textbf{Buena estrategia}: Esconderse en distancias $>$5 cuando NO detectado
+    \item \textbf{Estrategia subóptima}: Esconderse ya detectado
+    \item \textbf{Mal uso}: Esconderse a distancia $<$3 (momento de atacar)
+\end{itemize}
+
+\subsection{ATACAR}
+
+\begin{table}[H]
+\centering
+\caption{Recompensas para acción ATACAR según distancia}
+\label{tab:atacar-detalle}
+\begin{tabular}{|c|c|c|l|}
+\hline
+\textbf{Distancia} & \textbf{Resultado} & \textbf{Recompensa} & \textbf{Descripción} \\
+\hline
+\hline
+$\leq$1.5 cuadros & Éxito & +100.0 & EXITO\_CACERIA \\
+ & & +5.0 & ATAQUE\_CERCANO (bonus) \\
+ & & \textbf{Total: +105.0} & \textbf{Máxima recompensa} \\
+\hline
+1.5-2.0 cuadros & Éxito & +100.0 & EXITO\_CACERIA \\
+ & & +5.0 & ATAQUE\_CERCANO \\
+ & & \textbf{Total: +105.0} & Distancia óptima \\
+\hline
+2.0-3.0 cuadros & Fallido & 0.0 & Sin bonus ni penalización \\
+ & & & (demasiado lejos para éxito) \\
+\hline
+$>$3.0 cuadros & Fallido & -3.0 & ATAQUE\_LEJANO \\
+ & & & (ataque prematuro) \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Probabilidad de éxito:}
+\begin{equation}
+P_{\text{éxito}}(d) = \begin{cases}
+95\% & d \leq 1.5 \\
+70\% & 1.5 < d \leq 2.0 \\
+20\% & 2.0 < d \leq 3.0 \\
+0\% & d > 3.0
+\end{cases}
+\end{equation}
+
+\subsection{SITUARSE}
+
+\begin{table}[H]
+\centering
+\caption{Recompensas para acción SITUARSE}
+\label{tab:situarse-detalle}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Escenario} & \textbf{Recompensa} & \textbf{Descripción} \\
+\hline
+\hline
+Posición mejorada & +0.5 & Mejor ángulo de ataque \\
+\hline
+Posición neutral & 0.0 & Sin cambio estratégico \\
+\hline
+Posición empeorada & -0.5 & Peor ángulo (más visible) \\
+\hline
+Tiempo consumido & -0.1 & Penalización por turno \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Nota}: Acción poco utilizada en modelos entrenados (menos del 5\% de acciones).
+
+\section{Recompensas por Acción del Impala}
+
+\subsection{VER\_IZQUIERDA / VER\_DERECHA / VER\_FRENTE}
+
+\begin{table}[H]
+\centering
+\caption{Efecto de acciones de visión del impala}
+\label{tab:impala-vision}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Situación} & \textbf{Efecto en León} & \textbf{Mecanismo} \\
+\hline
+\hline
+León en cono de visión & -5.0 a -10.0 & DETECCION\_TEMPRANA/MUY\_TEMPRANA \\
+\hline
+León fuera del cono & 0.0 & Sin detección \\
+\hline
+León escondido & 0.0 & No puede ser detectado \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Cono de visión:}
+\begin{itemize}
+    \item \textbf{Ángulo}: 120 grados (60° a cada lado de la dirección)
+    \item \textbf{Alcance}: Ilimitado en el abrevadero
+    \item \textbf{Efecto esconderse}: Anula detección en ese turno
+\end{itemize}
+
+\subsection{BEBER\_AGUA}
+
+\begin{table}[H]
+\centering
+\caption{Efecto de acción BEBER\_AGUA}
+\label{tab:impala-beber}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Situación} & \textbf{Efecto} & \textbf{Descripción} \\
+\hline
+\hline
+León cerca ($<$3) & Vulnerable & Impala no vigila \\
+ & & León obtiene turno gratis \\
+\hline
+León lejos ($>$3) & Sin efecto & Acción segura \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{HUIR}
+
+\begin{table}[H]
+\centering
+\caption{Condiciones y efecto de HUIR}
+\label{tab:impala-huir}
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Condición} & \textbf{Resultado} & \textbf{Recompensa León} \\
+\hline
+\hline
+Distancia $<$3 y detectado & Huida exitosa & -50.0 (FRACASO\_CACERIA) \\
+\hline
+Distancia $\geq$3 & Huida exitosa & -50.0 (FRACASO\_CACERIA) \\
+\hline
+Distancia $<$3 y NO detectado & No huye & 0.0 (continúa cacería) \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Matriz de Recompensas Combinadas}
+
+\begin{table}[H]
+\centering
+\caption{Matriz de recompensas León-Impala según distancia}
+\label{tab:matriz-combinada}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Distancia} & \textbf{AVANZAR} & \textbf{ESCONDERSE} & \textbf{ATACAR} & \textbf{SITUARSE} \\
+\hline
+\hline
+$>$7 cuadros & +1.0 a +2.0 & +2.0 (si no detectado) & -3.0 (muy lejos) & ±0.5 \\
+ & -10.0 si detectado & +0.5 (si detectado) & & \\
+\hline
+4-7 cuadros & +1.0 a +2.0 & +1.0 a +2.0 & -3.0 (lejos) & ±0.5 \\
+ & -5.0 si detectado & & & \\
+\hline
+2-3 cuadros & +1.0 a +1.5 & -1.0 (mal uso) & 0.0 a -3.0 & ±0.5 \\
+ & & & (bajo éxito) & \\
+\hline
+$<$2 cuadros & +1.0 & -1.0 a -2.0 & +105.0 (éxito) & ±0.5 \\
+ & & (inútil) & o 0.0 (fallo) & \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\section{Recompensas Acumuladas en Episodios Tipo}
+
+\subsection{Episodio Exitoso (Estrategia Óptima)}
+
+\begin{table}[H]
+\centering
+\caption{Ejemplo de recompensas en cacería exitosa}
+\label{tab:episodio-exitoso}
+\begin{tabular}{|c|l|c|c|}
+\hline
+\textbf{Turno} & \textbf{Acción} & \textbf{Recompensa} & \textbf{Acumulado} \\
+\hline
+\hline
+1 & ESCONDERSE (dist=9.5) & +2.0 & +2.0 \\
+2 & AVANZAR (9.5→8.5) & +1.0 & +3.0 \\
+3 & AVANZAR (8.5→7.5) & +1.0 & +4.0 \\
+4 & AVANZAR (7.5→6.5) & +1.0 & +5.0 \\
+5 & AVANZAR (6.5→5.5) & +1.0 & +6.0 \\
+6 & AVANZAR (5.5→4.5) & +1.0 & +7.0 \\
+7 & AVANZAR (4.5→3.5) & +1.0 & +8.0 \\
+8 & AVANZAR (3.5→2.5) & +1.0 & +9.0 \\
+9 & AVANZAR (2.5→1.5) & +1.0 & +10.0 \\
+10 & ATACAR (dist=1.5) & +105.0 & \textbf{+115.0} \\
+\hline
+\multicolumn{3}{|r|}{\textbf{Penalización tiempo}} & -1.0 \\
+\hline
+\multicolumn{3}{|r|}{\textbf{TOTAL FINAL}} & \textbf{+114.0} \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Episodio Fallido (Detección Temprana)}
+
+\begin{table}[H]
+\centering
+\caption{Ejemplo de recompensas en cacería fallida}
+\label{tab:episodio-fallido}
+\begin{tabular}{|c|l|c|c|}
+\hline
+\textbf{Turno} & \textbf{Acción} & \textbf{Recompensa} & \textbf{Acumulado} \\
+\hline
+\hline
+1 & AVANZAR (dist=9.5) & +1.0 & +1.0 \\
+2 & AVANZAR (8.5→7.5) & +1.0 & +2.0 \\
+3 & AVANZAR (detectado!) & -10.0 & -8.0 \\
+4 & AVANZAR (persecución) & +1.0 & -7.0 \\
+5 & AVANZAR & +1.0 & -6.0 \\
+6 & ATACAR (dist=3.2, fallo) & -3.0 & -9.0 \\
+7 & Impala HUYE & -50.0 & -59.0 \\
+\hline
+\multicolumn{3}{|r|}{\textbf{Penalización tiempo}} & -0.7 \\
+\hline
+\multicolumn{3}{|r|}{\textbf{TOTAL FINAL}} & \textbf{-59.7} \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Estadísticas de Recompensas (Modelo EM4)}
+
+\begin{table}[H]
+\centering
+\caption{Distribución de recompensas en 100,000 episodios}
+\label{tab:estadisticas-em4}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Métrica} & \textbf{Éxitos} & \textbf{Fracasos} & \textbf{Promedio} \\
+\hline
+\hline
+Recompensa final & +100 a +115 & -40 a -70 & +4.23 \\
+\hline
+Turnos promedio & 10.2 & 8.7 & 9.1 \\
+\hline
+Detecciones evitadas & 87\% & 23\% & 45\% \\
+\hline
+Uso de ESCONDERSE & 2.1 veces & 0.3 veces & 0.8 veces \\
+\hline
+Distancia ataque & 1.6 cuadros & 3.8 cuadros & 2.9 cuadros \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Comparación de Sistemas de Recompensas}
+
+\begin{table}[H]
+\centering
+\caption{Comparación con sistemas alternativos probados}
+\label{tab:comparacion-sistemas}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Sistema} & \textbf{Tasa Éxito} & \textbf{Turnos Prom.} & \textbf{Nota} \\
+\hline
+\hline
+Sistema Actual & 10.45\% & 9.1 & Balance óptimo \\
+\hline
+Solo Distancia & 3.2\% & 12.4 & No considera detección \\
+\hline
+Sin Detección Temprana & 6.7\% & 10.8 & Aprende más lento \\
+\hline
+Doble Penalización & 8.9\% & 8.3 & Muy conservador \\
+\hline
+Sin Tiempo & 9.1\% & 15.2 & Episodios muy largos \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Conclusión}: El sistema actual logra el mejor balance entre:
+\begin{itemize}
+    \item Tasa de éxito (10.45\%)
+    \item Eficiencia temporal (9.1 turnos promedio)
+    \item Aprendizaje de estrategias complejas (uso de ESCONDERSE)
+\end{itemize}

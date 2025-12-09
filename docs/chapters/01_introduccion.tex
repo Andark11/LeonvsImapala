@@ -1,0 +1,100 @@
+\chapter{Introducción}
+
+\section{Motivación}
+
+El aprendizaje por refuerzo (Reinforcement Learning) representa uno de los paradigmas más prometedores de la inteligencia artificial moderna. A diferencia del aprendizaje supervisado, donde un agente aprende de ejemplos etiquetados, o del aprendizaje no supervisado, donde se descubren patrones en datos sin etiquetar, el aprendizaje por refuerzo permite que un agente aprenda mediante interacción directa con su entorno.
+
+Este proyecto implementa un sistema de aprendizaje por refuerzo basado en Q-Learning, utilizando un escenario de caza predador-presa que simula la interacción natural entre un león y un impala en un abrevadero. La elección de este escenario no es arbitraria: presenta características que hacen del aprendizaje un desafío interesante y educativo.
+
+\subsection{Desafíos del Escenario}
+
+El escenario plantea varios desafíos significativos:
+
+\begin{enumerate}
+    \item \textbf{Información Parcial}: El león no conoce la estrategia óptima de cacería.
+    \item \textbf{Ventaja Natural de la Presa}: El impala posee capacidades superiores:
+    \begin{itemize}
+        \item Visión de 120 grados
+        \item Capacidad de acelerar progresivamente (1, 2, 3, 4... cuadros por turno)
+        \item Detección de movimiento y sonido
+    \end{itemize}
+    \item \textbf{Espacio de Estados Grande}: Múltiples combinaciones de posiciones, distancias y visibilidad.
+    \item \textbf{Recompensa Retrasada}: El éxito o fracaso se conoce solo al final de la cacería.
+\end{enumerate}
+
+\section{Objetivos del Proyecto}
+
+\subsection{Objetivo General}
+
+Desarrollar e implementar un sistema de aprendizaje por refuerzo basado en Q-Learning que permita a un agente león aprender estrategias óptimas de cacería mediante experiencia acumulada, sin conocimiento previo del dominio.
+
+\subsection{Objetivos Específicos}
+
+\begin{enumerate}
+    \item Implementar el algoritmo Q-Learning con actualización basada en la ecuación de Bellman.
+    \item Diseñar un sistema de recompensas que guíe el aprendizaje hacia comportamientos deseables.
+    \item Desarrollar una representación espacial eficiente mediante coordenadas polares.
+    \item Crear una base de conocimientos con capacidad de generalización.
+    \item Entrenar un modelo durante 100,000 episodios y evaluar su desempeño.
+    \item Visualizar el proceso de aprendizaje y las cacerías en tiempo real.
+    \item Documentar las estrategias emergentes del comportamiento aprendido.
+\end{enumerate}
+
+\section{Alcance del Proyecto}
+
+\subsection{Incluye}
+
+\begin{itemize}
+    \item Implementación completa de Q-Learning desde cero en Python
+    \item Sistema multi-agente (león e impala) con comportamientos diferenciados
+    \item Visualización ASCII en grid 19×19
+    \item Persistencia de modelos entrenados en formato JSON
+    \item Suite de 9 tests unitarios
+    \item Base de conocimientos con generalización
+    \item Sistema de recompensas con 11 pesos configurables
+    \item Documentación completa del código y algoritmos
+\end{itemize}
+
+\subsection{No Incluye}
+
+\begin{itemize}
+    \item Redes neuronales (Deep Q-Learning)
+    \item Interfaz gráfica avanzada (GUI)
+    \item Aprendizaje multi-agente colaborativo
+    \item Optimización con técnicas de búsqueda avanzada
+    \item Paralelización del entrenamiento
+\end{itemize}
+
+\section{Estructura del Documento}
+
+El presente documento se organiza de la siguiente manera:
+
+\begin{description}
+    \item[Capítulo 2 - Marco Teórico:] Fundamentos de aprendizaje por refuerzo, Q-Learning y ecuación de Bellman.
+    \item[Capítulo 3 - Análisis y Diseño:] Arquitectura del sistema, representación de estados y acciones.
+    \item[Capítulo 4 - Implementación:] Detalles técnicos de código, módulos y componentes.
+    \item[Capítulo 5 - Resultados:] Análisis de desempeño, estrategias emergentes y métricas.
+    \item[Capítulo 6 - Conclusiones:] Lecciones aprendidas, limitaciones y trabajo futuro.
+\end{description}
+
+\section{Contribuciones del Proyecto}
+
+Este proyecto aporta:
+
+\begin{enumerate}
+    \item Una implementación educativa y completa de Q-Learning sin dependencias externas.
+    \item Un sistema de visualización intuitivo que permite observar el aprendizaje en acción.
+    \item Una base de conocimientos que demuestra capacidades de generalización.
+    \item Documentación exhaustiva que facilita la comprensión y replicación.
+    \item Un caso de estudio realista de aprendizaje por refuerzo en escenario adversarial.
+\end{enumerate}
+
+\section{Repositorio y Recursos}
+
+El código fuente completo, documentación adicional y recursos están disponibles en:
+
+\begin{center}
+\url{https://github.com/Andark11/LeonvsImapala}
+\end{center}
+
+El proyecto está licenciado bajo términos que permiten uso educativo y de investigación.

@@ -1,0 +1,409 @@
+\chapter{Implementación}
+
+\section{Tecnologías Utilizadas}
+
+\subsection{Stack Tecnológico}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Componente} & \textbf{Tecnología} \\
+\midrule
+Lenguaje & Python 3.8+ \\
+Type System & Type Hints (PEP 484) \\
+Persistencia & JSON (biblioteca estándar) \\
+Visualización & ASCII art en terminal \\
+Testing & unittest (biblioteca estándar) \\
+Control de versiones & Git + GitHub \\
+Documentación & Markdown + LaTeX \\
+\bottomrule
+\end{tabular}
+\caption{Stack tecnológico del proyecto}
+\label{tab:stack}
+\end{table}
+
+\subsection{Justificación Tecnológica}
+
+\textbf{Python 3.8+:} Elegido por:
+\begin{itemize}
+    \item Sintaxis clara y legible
+    \item Excelente para prototipado rápido
+    \item Type hints mejoran calidad de código
+    \item Amplia comunidad y recursos educativos
+\end{itemize}
+
+\textbf{Sin dependencias externas:} 
+\begin{itemize}
+    \item Facilita instalación y distribución
+    \item Código más portable
+    \item Reduce problemas de compatibilidad
+    \item Ideal para propósitos educativos
+\end{itemize}
+
+\section{Módulos Principales}
+
+\subsection{agents/leon.py}
+
+Implementa el agente león con sus capacidades y acciones.
+
+\begin{lstlisting}[language=Python, caption=Clase León (extracto)]
+class Leon:
+    """Agente león cazador"""
+    
+    VELOCIDAD_AVANCE = 1  # cuadros/turno
+    VELOCIDAD_ATAQUE = 2  # cuadros/turno
+    
+    def __init__(self, posicion_inicial: int = 1):
+        self.posicion = posicion_inicial
+        self.esta_escondido = False
+        self.esta_atacando = False
+        self.posicion_exacta: Optional[Tuple[float, float]] = None
+    
+    def ejecutar_accion(self, accion: AccionLeon) -> str:
+        """Ejecuta una acción y retorna descripción"""
+        if self.esta_atacando:
+            return self._continuar_ataque()
+        
+        if accion == AccionLeon.AVANZAR:
+            return self._avanzar()
+        elif accion == AccionLeon.ESCONDERSE:
+            return self._esconderse()
+        elif accion == AccionLeon.ATACAR:
+            return self._iniciar_ataque()
+        # ...
+\end{lstlisting}
+
+\subsection{agents/impala.py}
+
+Implementa el agente impala con comportamiento reactivo.
+
+\begin{lstlisting}[language=Python, caption=Clase Impala (extracto)]
+class Impala:
+    """Agente impala presa"""
+    
+    def __init__(self):
+        self.direccion_vista = Direccion.NORTE
+        self.esta_huyendo = False
+        self.velocidad_huida = 0
+        self.tiempo_huyendo = 0
+        self.posicion_leon_detectada: Optional[int] = None
+    
+    def _iniciar_huida(self) -> str:
+        """Inicia huida en dirección opuesta al león"""
+        self.esta_huyendo = True
+        self.velocidad_huida = 1
+        
+        # Huir en dirección opuesta
+        if self.posicion_leon_detectada == 3:  # Este
+            self.direccion_huida = Direccion.OESTE
+        elif self.posicion_leon_detectada == 7:  # Oeste
+            self.direccion_huida = Direccion.ESTE
+        # ... más lógica
+        
+        return f"Impala huye hacia {self.direccion_huida.name}"
+    
+    def _continuar_huida(self) -> str:
+        """Continúa huida con aceleración"""
+        self.tiempo_huyendo += 1
+        self.velocidad_huida = self.tiempo_huyendo
+        return f"Velocidad: {self.velocidad_huida} cuadros/T"
+\end{lstlisting}
+
+\subsection{learning/q\_learning.py}
+
+Implementación del algoritmo Q-Learning.
+
+\begin{lstlisting}[language=Python, caption=Q-Learning (extracto)]
+class QLearning:
+    """Implementación de Q-Learning"""
+    
+    def __init__(self, alpha=0.05, gamma=0.9, epsilon=1.0):
+        self.alpha = alpha      # Tasa aprendizaje
+        self.gamma = gamma      # Factor descuento
+        self.epsilon = epsilon  # Exploración
+        self.q_table = defaultdict(lambda: defaultdict(float))
+    
+    def seleccionar_accion(self, estado: EstadoHash) -> AccionLeon:
+        """Política epsilon-greedy"""
+        if random.random() < self.epsilon:
+            # Explorar: acción aleatoria
+            return random.choice(list(AccionLeon))
+        else:
+            # Explotar: mejor acción conocida
+            valores_q = self.q_table[estado]
+            return max(valores_q, key=valores_q.get)
+    
+    def actualizar(self, estado, accion, recompensa, 
+                   nuevo_estado, terminado):
+        """Actualización mediante ecuación de Bellman"""
+        q_actual = self.q_table[estado][accion]
+        
+        if terminado:
+            q_objetivo = recompensa
+        else:
+            max_q_siguiente = max(
+                self.q_table[nuevo_estado].values(), 
+                default=0.0
+            )
+            q_objetivo = recompensa + self.gamma * max_q_siguiente
+        
+        # Actualización
+        self.q_table[estado][accion] += \
+            self.alpha * (q_objetivo - q_actual)
+\end{lstlisting}
+
+\subsection{simulation/caceria.py}
+
+Orquesta el proceso completo de una cacería.
+
+\begin{lstlisting}[language=Python, caption=Simulación de Cacería (extracto)]
+class Caceria:
+    """Orquesta una cacería completa"""
+    
+    MAX_TIEMPO = 50  # Turnos máximos
+    
+    def ejecutar_turno(self, accion_leon: AccionLeon) -> Tuple[bool, str]:
+        """Ejecuta un turno completo"""
+        # 1. Impala actúa primero
+        accion_impala = self._obtener_accion_impala()
+        desc_impala = self.impala.ejecutar_accion(accion_impala)
+        
+        # 2. León reacciona
+        desc_leon = self.leon.ejecutar_accion(accion_leon)
+        
+        # 3. Actualizar posiciones
+        if accion_leon == AccionLeon.AVANZAR:
+            nueva_pos = self._calcular_avance(1)
+            self.leon.actualizar_posicion_exacta(nueva_pos)
+        elif accion_leon == AccionLeon.ATACAR:
+            nueva_pos = self._calcular_avance(2)
+            self.leon.actualizar_posicion_exacta(nueva_pos)
+        
+        # 4. Verificar condiciones
+        resultado = self._verificar_mundo(accion_impala)
+        
+        # 5. Verificar fin
+        terminada, mensaje = self._verificar_fin_caceria()
+        
+        return terminada, mensaje
+\end{lstlisting}
+
+\subsection{learning/recompensas.py}
+
+Sistema completo de recompensas.
+
+\begin{lstlisting}[language=Python, caption=Sistema de Recompensas (extracto)]
+class SistemaRecompensas:
+    """Define incentivos para aprendizaje"""
+    
+    # Recompensas principales
+    EXITO_CACERIA = 100.0
+    FRACASO_CACERIA = -50.0
+    
+    # Recompensas parciales
+    ACERCAMIENTO = 1.0
+    ALEJAMIENTO = -2.0
+    DETECCION_TEMPRANA = -5.0
+    
+    # Bonos estratégicos
+    BUEN_USO_ESCONDERSE = 2.0
+    MAL_USO_ESCONDERSE = -1.0
+    ATAQUE_CERCANO = 5.0
+    ATAQUE_LEJANO = -3.0
+    
+    def calcular_recompensa_total(self, distancia_anterior, 
+                                  distancia_nueva, accion, ...):
+        """Calcula recompensa total del turno"""
+        recompensa = 0.0
+        
+        # Acercamiento/alejamiento
+        recompensa += self.calcular_recompensa_acercamiento(
+            distancia_anterior, distancia_nueva
+        )
+        
+        # Acción específica
+        recompensa += self.calcular_recompensa_accion(
+            accion, distancia_nueva, leon_escondido, 
+            impala_puede_ver
+        )
+        
+        # Detección
+        if impala_huye:
+            recompensa += self.calcular_recompensa_deteccion(
+                impala_huye, distancia_nueva
+            )
+        
+        # Tiempo
+        recompensa += self.TIEMPO_EXCESIVO
+        
+        # Final
+        if caceria_terminada:
+            recompensa += self.calcular_recompensa_final(exito)
+        
+        return recompensa
+\end{lstlisting}
+
+\section{Persistencia}
+
+\subsection{Formato JSON}
+
+Los modelos se guardan en formato JSON legible:
+
+\begin{lstlisting}[language=Python, caption=Estructura de modelo guardado]
+{
+    "metadata": {
+        "version": "1.0.0",
+        "fecha_creacion": "2025-12-09T10:30:00",
+        "episodios_totales": 100000,
+        "parametros": {
+            "alpha": 0.05,
+            "gamma": 0.9,
+            "epsilon_inicial": 1.0,
+            "epsilon_final": 0.1,
+            "radio": 9.5
+        }
+    },
+    "estadisticas": {
+        "exitos": 10450,
+        "fracasos": 89550,
+        "tasa_exito": 0.1045,
+        "experiencias_unicas": 145135,
+        "recompensa_promedio": 12.4
+    },
+    "q_table": {
+        "estado_hash_1": {
+            "avanzar": 45.23,
+            "esconderse": 58.71,
+            "atacar": -15.32
+        },
+        "estado_hash_2": { ... },
+        ...
+    }
+}
+\end{lstlisting}
+
+\subsection{Carga y Guardado}
+
+\begin{lstlisting}[language=Python, caption=Persistencia de modelos]
+# storage/guardado.py
+def guardar_modelo(q_table, estadisticas, nombre_archivo):
+    """Guarda modelo entrenado en JSON"""
+    modelo = {
+        "metadata": generar_metadata(),
+        "estadisticas": estadisticas,
+        "q_table": convertir_q_table_a_json(q_table)
+    }
+    
+    with open(f"modelos/{nombre_archivo}.json", "w") as f:
+        json.dump(modelo, f, indent=2)
+
+# storage/carga.py
+def cargar_modelo(nombre_archivo):
+    """Carga modelo desde JSON"""
+    with open(f"modelos/{nombre_archivo}.json", "r") as f:
+        modelo = json.load(f)
+    
+    q_table = convertir_json_a_q_table(modelo["q_table"])
+    return q_table, modelo["estadisticas"]
+\end{lstlisting}
+
+\section{Visualización}
+
+\subsection{Grid ASCII 19×19}
+
+La visualización utiliza caracteres ASCII para representar el estado en un grid 19×19:
+
+\begin{verbatim}
++---------------------------------------+
+| . . . . . . . . . L . . . . . . . . . |
+| . . . . . . . . . . . . . . . . . . . |
+| . . . . . . . . . . . . . . . . . . . |
+| . . . . . . . A A A A A . . . . . . . |
+| 7 . . . . . . A A A A A . . . . . . 3 |
+| . . . . . . . A A A A A . . . . . . . |
+| . . . . . . . . . . . . . . . . . . . |
+| . . . . . . . . I . . . . . . . . . . |
+| 6 . . . . . . . 5 . . . . . . . . . 4 |
++---------------------------------------+
+
+Leyenda:
+L = Leon  |  I = Impala  |  A = Abrevadero
+. = Espacio vacio  |  1-8 = Posiciones iniciales
+\end{verbatim}
+
+\section{Tests Unitarios}
+
+\subsection{Suite de Tests}
+
+Se implementaron 9 tests unitarios cubriendo todos los componentes:
+
+\begin{lstlisting}[language=Python, caption=Tests unitarios]
+import unittest
+
+class TestAbrevadero(unittest.TestCase):
+    def test_coordenadas_polares(self):
+        """Verifica conversión polar-cartesiano"""
+        abrev = Abrevadero()
+        x, y = abrev.obtener_coordenadas(1)  # Norte
+        self.assertAlmostEqual(x, 0.0, places=1)
+        self.assertAlmostEqual(y, 9.5, places=1)
+    
+    def test_distancia_correcta(self):
+        """Verifica cálculo de distancia"""
+        abrev = Abrevadero()
+        dist = abrev.distancia_leon_impala(1)
+        self.assertAlmostEqual(dist, 9.5, places=1)
+
+class TestQLearning(unittest.TestCase):
+    def test_actualizacion_q(self):
+        """Verifica actualización de valores Q"""
+        ql = QLearning(alpha=0.1, gamma=0.9)
+        estado = ('pos1', 'dist5', True)
+        ql.actualizar(estado, 'avanzar', 10, estado, False)
+        self.assertGreater(ql.q_table[estado]['avanzar'], 0)
+    
+    def test_epsilon_greedy(self):
+        """Verifica política epsilon-greedy"""
+        ql = QLearning(epsilon=0.0)  # Solo explotar
+        # Inicializar valores Q
+        estado = ('test',)
+        ql.q_table[estado] = {
+            'avanzar': 10.0,
+            'atacar': 5.0
+        }
+        accion = ql.seleccionar_accion(estado)
+        self.assertEqual(accion, 'avanzar')
+
+# ... más tests
+\end{lstlisting}
+
+\subsection{Cobertura}
+
+Los tests cubren:
+\begin{itemize}
+    \item Coordenadas polares y distancias
+    \item Acciones de león e impala
+    \item Actualización de valores Q
+    \item Sistema de recompensas
+    \item Verificación de condiciones de huida
+    \item Cacería completa end-to-end
+\end{itemize}
+
+\section{Optimizaciones}
+
+\subsection{Uso de Memoria}
+
+\begin{itemize}
+    \item Diccionarios con defaultdict para evitar inicialización explícita
+    \item Hashing eficiente de estados
+    \item Limpieza de estados no visitados frecuentemente
+\end{itemize}
+
+\subsection{Rendimiento}
+
+\begin{itemize}
+    \item Cálculos matemáticos precalculados (ángulos, coordenadas)
+    \item Uso de generadores para iteraciones grandes
+    \item Guardado incremental cada 10,000 episodios
+\end{itemize}
