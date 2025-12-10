@@ -1,0 +1,321 @@
+\chapter{Análisis y Diseño del Sistema}
+
+\section{Arquitectura General}
+
+\subsection{Visión General}
+
+El sistema está diseñado siguiendo principios de modularidad y separación de responsabilidades. La arquitectura se divide en seis módulos principales:
+
+\begin{figure}[H]
+\centering
+\begin{verbatim}
++---------------------------------------------+
+|        main.py (Orquestador)                |
++---------------------------------------------+
+                    |
+             +------+------+
+             |     UI      |  <-- Interfaces usuario
+             +------+------+
+                    |
+    +---------------+---------------+
+    |        simulation/            |
+    |  [Caceria]  [Verificador]     |
+    +---------------+---------------+
+                    |
+    +---------------+---------------+
+    |          agents/              |
+    |     [Leon]    [Impala]        |
+    +---------------+---------------+
+                    |
+    +---------------+---------------+
+    |         learning/             |
+    | [Q-Learning] [Recompensas]    |
+    +---------------+---------------+
+                    |
+    +---------------+---------------+
+    |        knowledge/             |
+    | [Base Conocim] [Generaliz.]   |
+    +---------------+---------------+
+                    |
+    +---------------+---------------+
+    |         storage/              |
+    |   [Guardado]    [Carga]       |
+    +-------------------------------+
+\end{verbatim}
+\caption{Arquitectura modular del sistema}
+\label{fig:arquitectura}
+\end{figure}
+
+\subsection{Módulos del Sistema}
+
+\begin{description}
+    \item[agents/] Agentes león e impala con sus acciones y estados
+    \item[simulation/] Motor de cacería, gestión de turnos y verificación
+    \item[knowledge/] Base de conocimientos y generalización
+    \item[learning/] Q-Learning, entrenamiento y sistema de recompensas
+    \item[storage/] Persistencia de modelos en JSON
+    \item[ui/] Interfaces de visualización y explicación
+\end{description}
+
+\section{Representación de Estados}
+
+\subsection{Estado del Mundo}
+
+El estado global del sistema se representa mediante:
+
+\begin{lstlisting}[language=Python, caption=Estructura del estado]
+estado_mundo = {
+    'posicion_leon': int,           # 1-8
+    'posicion_exacta_leon': (float, float),
+    'distancia_leon_impala': float,
+    'leon_escondido': bool,
+    'leon_atacando': bool,
+    'impala_bebiendo': bool,
+    'impala_huyendo': bool,
+    'impala_puede_ver_leon': bool,
+    'velocidad_huida_impala': int,
+    'tiempo_transcurrido': int
+}
+\end{lstlisting}
+
+\subsection{Discretización del Estado}
+
+Para reducir el espacio de estados, se aplica discretización:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Variable} & \textbf{Continua} & \textbf{Discreta} \\
+\midrule
+Distancia & $[0.0, 19.0]$ & $\{$muy cerca, cerca, medio, lejos$\}$ \\
+Posición león & $\mathbb{R}^2$ & $\{1, 2, \ldots, 8\}$ \\
+Visibilidad & Booleana & $\{$visible, invisible$\}$ \\
+\bottomrule
+\end{tabular}
+\caption{Discretización de variables de estado}
+\label{tab:discretizacion}
+\end{table}
+
+\subsection{Función de Hashing}
+
+Para indexar la tabla Q eficientemente:
+
+\begin{lstlisting}[language=Python, caption=Hash de estado]
+def estado_a_hash(estado):
+    return (
+        estado['posicion_leon'],
+        int(estado['distancia_leon_impala']),
+        estado['leon_escondido'],
+        estado['impala_bebiendo'],
+        estado['impala_huyendo']
+    )
+\end{lstlisting}
+
+\section{Espacio de Acciones}
+
+\subsection{Acciones del León}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcp{6cm}}
+\toprule
+\textbf{Acción} & \textbf{Velocidad} & \textbf{Efecto} \\
+\midrule
+\texttt{AVANZAR} & 1 cuadro/T & Acercarse en línea recta, rompe escondite \\
+\texttt{ESCONDERSE} & 0 cuadros/T & Invisible para impala, permanece en posición \\
+\texttt{ATACAR} & 2 cuadros/T & Sprint final, visible y ruidoso \\
+\texttt{SITUARSE} & N/A & Cambiar posición cardinal (solo setup) \\
+\bottomrule
+\end{tabular}
+\caption{Conjunto de acciones del león}
+\label{tab:acciones_leon}
+\end{table}
+
+\subsection{Acciones del Impala}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcp{6cm}}
+\toprule
+\textbf{Acción} & \textbf{Cono} & \textbf{Efecto} \\
+\midrule
+\texttt{VER\_IZQUIERDA} & 120° & Rotar vista 90° izquierda \\
+\texttt{VER\_DERECHA} & 120° & Rotar vista 90° derecha \\
+\texttt{VER\_FRENTE} & 120° & Mantener dirección actual \\
+\texttt{BEBER\_AGUA} & 0° & Vulnerable, no puede ver \\
+\texttt{HUIR} & N/A & Escapar con aceleración progresiva \\
+\bottomrule
+\end{tabular}
+\caption{Conjunto de acciones del impala}
+\label{tab:acciones_impala}
+\end{table}
+
+\section{Sistema de Recompensas Detallado}
+
+\subsection{Tabla Completa de Pesos}
+
+\begin{longtable}{lrp{7cm}}
+\caption{Sistema completo de recompensas} \label{tab:recompensas_completas} \\
+\toprule
+\textbf{Constante} & \textbf{Valor} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\multicolumn{3}{c}{\textit{(Continuación)}} \\
+\toprule
+\textbf{Constante} & \textbf{Valor} & \textbf{Descripción} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{\textit{Continúa en la siguiente página}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{EXITO\_CACERIA} & +100.0 & León captura al impala \\
+\texttt{FRACASO\_CACERIA} & -50.0 & Impala escapa definitivamente \\
+\texttt{ACERCAMIENTO} & +1.0 & Por cuadro acercado (×distancia) \\
+\texttt{ALEJAMIENTO} & -2.0 & Por cuadro alejado (×distancia) \\
+\texttt{DETECCION\_TEMPRANA} & -5.0 & Impala ve león (distancia 3-4) \\
+\texttt{DETECCION\_MUY\_TEMPRANA} & -10.0 & Impala ve león (distancia $>$4) \\
+\texttt{TIEMPO\_EXCESIVO} & -0.1 & Por cada turno transcurrido \\
+\texttt{BUEN\_USO\_ESCONDERSE} & +2.0 & Se esconde cuando visible \\
+\texttt{MAL\_USO\_ESCONDERSE} & -1.0 & Se esconde innecesariamente \\
+\texttt{ATAQUE\_CERCANO} & +5.0 & Ataca con distancia $<$ 2 \\
+\texttt{ATAQUE\_LEJANO} & -3.0 & Ataca con distancia $>$ 3 \\
+\end{longtable}
+
+\subsection{Función de Recompensa Total}
+
+\begin{algorithm}[H]
+\caption{Cálculo de Recompensa Total}
+\label{alg:recompensa_total}
+\begin{algorithmic}[1]
+\REQUIRE Estado anterior $s$, acción $a$, nuevo estado $s'$, terminado, éxito
+\ENSURE Recompensa total $r_{\text{total}}$
+\STATE $r_{\text{total}} \leftarrow 0$
+\STATE $\Delta d \leftarrow$ distancia$(s)$ - distancia$(s')$
+\IF{$\Delta d > 0$}
+    \STATE $r_{\text{total}} \leftarrow r_{\text{total}} + \text{ACERCAMIENTO} \times \Delta d$
+\ELSIF{$\Delta d < 0$}
+    \STATE $r_{\text{total}} \leftarrow r_{\text{total}} + \text{ALEJAMIENTO} \times |\Delta d|$
+\ENDIF
+\STATE $r_{\text{total}} \leftarrow r_{\text{total}} + $ RecompensaAccion$(a, s')$
+\IF{impala inicia huida en $s'$}
+    \STATE $r_{\text{total}} \leftarrow r_{\text{total}} + $ RecompensaDetección$(s')$
+\ENDIF
+\STATE $r_{\text{total}} \leftarrow r_{\text{total}} + \text{TIEMPO\_EXCESIVO}$
+\IF{terminado}
+    \IF{éxito}
+        \STATE $r_{\text{total}} \leftarrow r_{\text{total}} + \text{EXITO\_CACERIA}$
+    \ELSE
+        \STATE $r_{\text{total}} \leftarrow r_{\text{total}} + \text{FRACASO\_CACERIA}$
+    \ENDIF
+\ENDIF
+\RETURN $r_{\text{total}}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Tabla Q}
+
+\subsection{Estructura}
+
+La tabla Q se implementa como un diccionario anidado:
+
+\begin{lstlisting}[language=Python, caption=Estructura de Tabla Q]
+Q_table = {
+    estado_hash: {
+        'avanzar': float,
+        'esconderse': float,
+        'atacar': float
+    }
+}
+\end{lstlisting}
+
+\subsection{Inicialización}
+
+Los valores Q se inicializan optimistamente:
+
+\begin{equation}
+Q(s,a) = 0.0 \quad \forall s \in S, a \in A
+\end{equation}
+
+La inicialización optimista (valores iniciales positivos) fomenta exploración temprana.
+
+\subsection{Actualización}
+
+Implementación de la ecuación de Bellman:
+
+\begin{lstlisting}[language=Python, caption=Actualización de Q]
+def actualizar_q(estado, accion, recompensa, 
+                 nuevo_estado, alpha=0.05, gamma=0.9):
+    q_actual = Q[estado][accion]
+    max_q_siguiente = max(Q[nuevo_estado].values())
+    
+    error = recompensa + gamma * max_q_siguiente - q_actual
+    Q[estado][accion] += alpha * error
+    
+    return Q[estado][accion]
+\end{lstlisting}
+
+\section{Algoritmo de Entrenamiento}
+
+\subsection{Pseudocódigo Principal}
+
+\begin{algorithm}[H]
+\caption{Entrenamiento Q-Learning}
+\label{alg:entrenamiento}
+\begin{algorithmic}[1]
+\REQUIRE $N$ episodios, $\alpha$, $\gamma$, $\epsilon_{\text{inicial}}$
+\ENSURE Tabla Q entrenada
+\STATE Inicializar $Q(s,a) = 0$ para todo $s,a$
+\STATE $\epsilon \leftarrow \epsilon_{\text{inicial}}$
+\FOR{episodio = 1 to $N$}
+    \STATE $s \leftarrow$ Estado inicial aleatorio
+    \STATE $t \leftarrow 0$
+    \WHILE{cacería no terminada AND $t < T_{\text{max}}$}
+        \IF{random() $< \epsilon$}
+            \STATE $a \leftarrow$ Acción aleatoria \COMMENT{Explorar}
+        \ELSE
+            \STATE $a \leftarrow \arg\max_{a'} Q(s,a')$ \COMMENT{Explotar}
+        \ENDIF
+        \STATE Ejecutar acción $a$
+        \STATE Observar recompensa $r$ y nuevo estado $s'$
+        \STATE $Q(s,a) \leftarrow Q(s,a) + \alpha[r + \gamma \max_{a'} Q(s',a') - Q(s,a)]$
+        \STATE $s \leftarrow s'$
+        \STATE $t \leftarrow t + 1$
+    \ENDWHILE
+    \STATE $\epsilon \leftarrow \max(\epsilon_{\text{min}}, \epsilon - \Delta\epsilon)$
+    \IF{episodio mod 10000 == 0}
+        \STATE Guardar modelo
+    \ENDIF
+\ENDFOR
+\RETURN $Q$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Consideraciones de Diseño}
+
+\subsection{Eficiencia Computacional}
+
+\begin{itemize}
+    \item Uso de diccionarios Python (hash tables) para acceso $O(1)$
+    \item Discretización de estados para reducir complejidad
+    \item Sin dependencias externas para minimizar overhead
+\end{itemize}
+
+\subsection{Escalabilidad}
+
+\begin{itemize}
+    \item Arquitectura modular permite extensiones
+    \item Persistencia en JSON facilita análisis posterior
+    \item Tests unitarios garantizan estabilidad
+\end{itemize}
+
+\subsection{Mantenibilidad}
+
+\begin{itemize}
+    \item Type hints en todo el código Python
+    \item Documentación inline exhaustiva
+    \item Separación clara de responsabilidades
+    \item Código self-documenting con nombres descriptivos
+\end{itemize}

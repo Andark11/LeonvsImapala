@@ -1,0 +1,189 @@
+% Documentación del Proyecto León vs Impala
+% Sistema de Aprendizaje por Refuerzo con Q-Learning
+
+\documentclass[12pt,a4paper]{report}
+
+% Paquetes esenciales
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{float}
+\usepackage{url}
+
+% Configuración de página
+\geometry{
+    left=3cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm
+}
+
+% Configuración de encabezados
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Configuración de hipervínculos
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={León vs Impala - Q-Learning},
+    pdfauthor={Equipo Sistemas Inteligentes},
+    pdfsubject={Aprendizaje por Refuerzo},
+    pdfkeywords={Q-Learning, Reinforcement Learning, Python}
+}
+
+% Configuración de código Python
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    backgroundcolor=\color{gray!10},
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    rulecolor=\color{black},
+    tabsize=4,
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=false,
+    escapeinside={\%*}{*)},
+    xleftmargin=2em,
+    framexleftmargin=1.5em
+}
+
+\lstset{style=pythonstyle}
+
+% Información del documento
+\title{León vs Impala - Sistema de Aprendizaje por Refuerzo}
+\author{}
+\date{}
+
+\begin{document}
+
+% Portada personalizada
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge \textbf{Sistemas Inteligentes} \par}
+    \vspace{1.5cm}
+    
+    {\LARGE \textbf{León vs Impala} \par}
+    \vspace{0.5cm}
+    
+    {\Large \textbf{Sistema de Aprendizaje por Refuerzo con Q-Learning} \par}
+    \vspace{2cm}
+    
+    {\large \textbf{Integrantes:} \par}
+    \vspace{0.5cm}
+    {\large 
+    Alvarado Martínez Miguel Eduardo \\
+    García Retana Alba Sughey \\
+    Soria Cabrera Andrés \\
+    Sosa Pérez Dariana Montserrat \par}
+    \vspace{1cm}
+    
+    {\large \textbf{Profesor:} Rosas Hernández Javier \par}
+    \vspace{0.5cm}
+    {\large \textbf{Grupo:} 1754 \par}
+    \vspace{0.5cm}
+    
+    {\large \textbf{Fecha:} Diciembre 2025 \par}
+    \vfill
+
+    {\large Facultad de Estudios Superiores Acatlán \par}
+    {\large Universidad Nacional Autónoma de México \par}
+
+\end{titlepage}
+
+% Página de resumen
+\begin{abstract}
+\noindent
+Este documento presenta el desarrollo e implementación de un sistema de aprendizaje por refuerzo basado en Q-Learning, donde un agente león aprende a cazar un impala mediante experiencia acumulada. El sistema no incluye estrategias preprogramadas, permitiendo que el agente desarrolle comportamientos complejos únicamente a través de recompensas y penalizaciones.
+
+El proyecto implementa la ecuación de Bellman para actualización de valores Q, utiliza coordenadas polares para representación espacial, e incorpora una base de conocimientos con capacidad de generalización. Los resultados demuestran que después de 100,000 episodios de entrenamiento, el león alcanza una tasa de éxito del 10.45\%, emergiendo naturalmente estrategias como esconderse antes de avanzar, atacar solo a distancias cortas, y aprovechar momentos de vulnerabilidad del impala.
+
+La implementación está desarrollada completamente en Python 3.8+ sin dependencias externas, incluye 9 tests unitarios, visualización ASCII en tiempo real, y persistencia de modelos entrenados en formato JSON.
+
+\vspace{0.5cm}
+\noindent
+\textbf{Palabras clave:} Q-Learning, Aprendizaje por Refuerzo, Inteligencia Artificial, Python, Ecuación de Bellman, Coordenadas Polares, Sistema Multi-Agente
+\end{abstract}
+
+% Tabla de contenidos
+\tableofcontents
+\listoffigures
+\listoftables
+\listofalgorithms
+
+% Capítulos
+\include{chapters/01_introduccion}
+\include{chapters/02_marco_teorico}
+\include{chapters/03_analisis_diseño}
+\include{chapters/04_implementacion}
+\include{chapters/05_resultados}
+\include{chapters/06_conclusiones}
+
+% Apéndices
+\appendix
+\include{appendix/a_codigo}
+\include{appendix/b_instalacion}
+\include{appendix/c_tablas_recompensas}
+
+% Bibliografía
+\begin{thebibliography}{99}
+
+\bibitem{watkins1989}
+Watkins, C. J. C. H. (1989).
+\textit{Learning from Delayed Rewards}.
+PhD thesis, King's College, Cambridge.
+
+\bibitem{sutton2018}
+Sutton, R. S., \& Barto, A. G. (2018).
+\textit{Reinforcement Learning: An Introduction} (2nd ed.).
+MIT Press.
+
+\bibitem{bellman1957}
+Bellman, R. (1957).
+\textit{Dynamic Programming}.
+Princeton University Press.
+
+\bibitem{russell2010}
+Russell, S., \& Norvig, P. (2010).
+\textit{Artificial Intelligence: A Modern Approach} (3rd ed.).
+Prentice Hall.
+
+\bibitem{mnih2015}
+Mnih, V., et al. (2015).
+Human-level control through deep reinforcement learning.
+\textit{Nature}, 518(7540), 529-533.
+
+\end{thebibliography}
+
+\end{document}

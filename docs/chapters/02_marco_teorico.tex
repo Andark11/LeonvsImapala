@@ -1,0 +1,241 @@
+\chapter{Marco Teórico}
+
+\section{Aprendizaje por Refuerzo}
+
+\subsection{Definición}
+
+El Aprendizaje por Refuerzo (Reinforcement Learning, RL) es un paradigma de aprendizaje automático donde un agente aprende a tomar decisiones mediante interacción con un entorno. A diferencia de otros enfoques, el agente no recibe instrucciones explícitas sobre qué acciones tomar, sino que descubre qué acciones producen mayor recompensa mediante prueba y error.
+
+\subsection{Componentes Fundamentales}
+
+Un sistema de aprendizaje por refuerzo consta de:
+
+\begin{description}
+    \item[Agente:] Entidad que toma decisiones y aprende.
+    \item[Entorno:] Mundo con el que el agente interactúa.
+    \item[Estado ($s$):] Representación de la situación actual del entorno.
+    \item[Acción ($a$):] Decisión que el agente puede tomar.
+    \item[Recompensa ($r$):] Señal numérica que indica qué tan buena fue una acción.
+    \item[Política ($\pi$):] Estrategia que mapea estados a acciones.
+\end{description}
+
+\subsection{Proceso de Markov de Decisión (MDP)}
+
+El framework matemático subyacente es el Proceso de Markov de Decisión, definido por la tupla $(S, A, P, R, \gamma)$:
+
+\begin{itemize}
+    \item $S$: Conjunto de estados posibles
+    \item $A$: Conjunto de acciones posibles
+    \item $P(s'|s,a)$: Probabilidad de transición al estado $s'$ dado estado $s$ y acción $a$
+    \item $R(s,a,s')$: Recompensa recibida por la transición
+    \item $\gamma$: Factor de descuento $[0,1]$
+\end{itemize}
+
+\section{Q-Learning}
+
+\subsection{Concepto}
+
+Q-Learning es un algoritmo de aprendizaje por refuerzo libre de modelo (model-free) que aprende una función de valor de acción $Q(s,a)$ que estima la recompensa total esperada al tomar la acción $a$ en el estado $s$ y seguir la política óptima después.
+
+\subsection{Ecuación de Bellman}
+
+La actualización de valores Q se realiza mediante la ecuación de Bellman:
+
+\begin{equation}
+Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]
+\end{equation}
+
+Donde:
+\begin{itemize}
+    \item $Q(s,a)$: Valor Q actual para el par estado-acción
+    \item $\alpha$: Tasa de aprendizaje ($0 < \alpha \leq 1$)
+    \item $r$: Recompensa inmediata recibida
+    \item $\gamma$: Factor de descuento ($0 \leq \gamma < 1$)
+    \item $s'$: Nuevo estado después de la acción
+    \item $\max_{a'} Q(s',a')$: Mejor valor Q posible en el nuevo estado
+\end{itemize}
+
+\subsection{Interpretación Intuitiva}
+
+La ecuación actualiza nuestra estimación de $Q(s,a)$ basándose en:
+
+\begin{enumerate}
+    \item \textbf{Experiencia actual}: Recompensa $r$ obtenida
+    \item \textbf{Mejor futuro posible}: $\gamma \max_{a'} Q(s',a')$
+    \item \textbf{Error de predicción}: Diferencia entre lo esperado y lo obtenido
+    \item \textbf{Tasa de aprendizaje}: $\alpha$ controla qué tan rápido actualizamos
+\end{enumerate}
+
+En palabras simples: ``El valor de tomar la acción $a$ en el estado $s$ es nuestra estimación actual más un ajuste basado en lo que realmente pasó.''
+
+\subsection{Convergencia}
+
+Q-Learning garantiza convergencia a la política óptima $\pi^*$ bajo las siguientes condiciones:
+
+\begin{itemize}
+    \item Todos los pares estado-acción son visitados infinitas veces
+    \item La tasa de aprendizaje $\alpha$ satisface:
+    \begin{equation}
+    \sum_{t=1}^{\infty} \alpha_t = \infty \quad \text{y} \quad \sum_{t=1}^{\infty} \alpha_t^2 < \infty
+    \end{equation}
+    \item El entorno es estacionario
+\end{itemize}
+
+\section{Exploración vs Explotación}
+
+\subsection{Dilema Fundamental}
+
+Un desafío clave en RL es balancear:
+\begin{itemize}
+    \item \textbf{Exploración}: Probar acciones nuevas para descubrir mejores estrategias
+    \item \textbf{Explotación}: Usar el conocimiento actual para maximizar recompensa
+\end{itemize}
+
+\subsection{Estrategia Epsilon-Greedy}
+
+La política epsilon-greedy resuelve este dilema:
+
+\begin{equation}
+a = \begin{cases}
+\text{acción aleatoria} & \text{con probabilidad } \epsilon \\
+\arg\max_{a'} Q(s,a') & \text{con probabilidad } 1-\epsilon
+\end{cases}
+\end{equation}
+
+\subsection{Decaimiento de Epsilon}
+
+Para favorecer exploración inicial y explotación posterior:
+
+\begin{equation}
+\epsilon_t = \max(\epsilon_{\text{min}}, \epsilon_{\text{inicial}} - \frac{0.9 \cdot t}{N_{\text{episodios}}})
+\end{equation}
+
+Donde:
+\begin{itemize}
+    \item $\epsilon_{\text{inicial}} = 1.0$ (100\% exploración)
+    \item $\epsilon_{\text{min}} = 0.1$ (10\% exploración mínima)
+    \item $t$: Episodio actual
+    \item $N_{\text{episodios}}$: Total de episodios de entrenamiento
+\end{itemize}
+
+\section{Coordenadas Polares}
+
+\subsection{Motivación}
+
+El escenario del abrevadero es naturalmente circular, con el centro representando el punto de agua. Las coordenadas polares $(r, \theta)$ simplifican:
+
+\begin{itemize}
+    \item Cálculo de distancias al centro
+    \item Representación de posiciones cardinales
+    \item Movimiento radial hacia el objetivo
+\end{itemize}
+
+\subsection{Conversión Polar a Cartesiano}
+
+\begin{equation}
+\begin{aligned}
+x &= r \sin(\theta) \\
+y &= r \cos(\theta)
+\end{aligned}
+\end{equation}
+
+Donde:
+\begin{itemize}
+    \item $r$: Radio (distancia desde el centro)
+    \item $\theta$: Ángulo desde el norte (0° = Norte, sentido horario)
+\end{itemize}
+
+\subsection{Posiciones Cardinales}
+
+Las 8 posiciones se calculan:
+
+\begin{equation}
+\theta_i = (i-1) \times 45°, \quad i \in \{1,2,\ldots,8\}
+\end{equation}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{clc}
+\toprule
+\textbf{Posición} & \textbf{Dirección} & \textbf{Ángulo} \\
+\midrule
+1 & Norte (N) & 0° \\
+2 & Noreste (NE) & 45° \\
+3 & Este (E) & 90° \\
+4 & Sureste (SE) & 135° \\
+5 & Sur (S) & 180° \\
+6 & Suroeste (SO) & 225° \\
+7 & Oeste (O) & 270° \\
+8 & Noroeste (NO) & 315° \\
+\bottomrule
+\end{tabular}
+\caption{Mapeo de posiciones a ángulos polares}
+\label{tab:posiciones_polares}
+\end{table}
+
+\section{Sistema de Recompensas}
+
+\subsection{Diseño de Recompensas}
+
+El diseño del sistema de recompensas es crítico para guiar el aprendizaje. Debe:
+
+\begin{itemize}
+    \item Reflejar el objetivo del agente
+    \item Proporcionar señales frecuentes (no solo al final)
+    \item Penalizar comportamientos indeseables
+    \item Ser escalable y balanceado
+\end{itemize}
+
+\subsection{Tipos de Recompensas}
+
+\begin{description}
+    \item[Recompensas Finales:] Señales de éxito/fracaso total ($\pm 50$ a $\pm 100$)
+    \item[Recompensas Incrementales:] Progreso hacia el objetivo ($\pm 1$ a $\pm 5$)
+    \item[Bonos Estratégicos:] Acciones inteligentes ($+2$ a $+5$)
+    \item[Penalizaciones:] Errores tácticos ($-1$ a $-10$)
+\end{itemize}
+
+\subsection{Shaping de Recompensas}
+
+El \textit{reward shaping} guía al agente proporcionando recompensas intermedias que aceleran el aprendizaje sin cambiar la política óptima. En nuestro sistema:
+
+\begin{equation}
+R_{\text{total}} = R_{\text{acercamiento}} + R_{\text{acción}} + R_{\text{detección}} + R_{\text{tiempo}} + R_{\text{final}}
+\end{equation}
+
+\section{Generalización de Conocimiento}
+
+\subsection{Problema de Datos Escasos}
+
+Con espacios de estados grandes, muchas combinaciones estado-acción se visitan pocas veces. La generalización permite:
+
+\begin{itemize}
+    \item Aplicar experiencia de estados similares
+    \item Acelerar el aprendizaje
+    \item Manejar situaciones no vistas exactamente antes
+\end{itemize}
+
+\subsection{Similitud de Estados}
+
+Definimos una métrica de similitud entre estados:
+
+\begin{equation}
+\text{sim}(s_1, s_2) = \exp\left(-\frac{\sum_{i} w_i |f_i(s_1) - f_i(s_2)|}{Z}\right)
+\end{equation}
+
+Donde:
+\begin{itemize}
+    \item $f_i$: Características del estado (distancia, visibilidad, etc.)
+    \item $w_i$: Pesos de importancia de cada característica
+    \item $Z$: Factor de normalización
+\end{itemize}
+
+\subsection{Transferencia de Conocimiento}
+
+Cuando se encuentra un estado $s$ similar a estados conocidos $\{s_1, s_2, \ldots, s_k\}$:
+
+\begin{equation}
+Q(s,a) \approx \sum_{i=1}^{k} \frac{\text{sim}(s, s_i)}{\sum_j \text{sim}(s, s_j)} \cdot Q(s_i, a)
+\end{equation}
+
+Esta interpolación ponderada permite aprovechar experiencia previa en situaciones nuevas.

@@ -1,0 +1,328 @@
+\chapter{Guía de Instalación y Ejecución}
+
+\section{Requisitos del Sistema}
+
+\subsection{Software Necesario}
+
+\begin{itemize}
+    \item \textbf{Python}: Versión 3.8 o superior
+    \item \textbf{Sistema Operativo}: Linux, Windows 10/11, o macOS
+    \item \textbf{Memoria RAM}: Mínimo 4 GB (recomendado 8 GB para entrenamiento largo)
+    \item \textbf{Espacio en disco}: 100 MB para código y modelos
+    \item \textbf{Git}: Para clonar el repositorio (opcional)
+\end{itemize}
+
+\subsection{Verificación de Python}
+
+Abrir terminal y ejecutar:
+
+\begin{lstlisting}[language=bash, caption=Verificar versión de Python]
+python --version
+# o alternativamente:
+python3 --version
+\end{lstlisting}
+
+La salida debe mostrar Python 3.8.x o superior.
+
+\section{Instalación Paso a Paso}
+
+\subsection{Método 1: Clonar desde GitHub}
+
+\begin{lstlisting}[language=bash, caption=Clonar repositorio]
+# Clonar el repositorio
+git clone https://github.com/Andark11/LeonvsImapala.git
+
+# Ingresar al directorio
+cd LeonvsImapala
+
+# Verificar archivos
+ls -la
+\end{lstlisting}
+
+\subsection{Método 2: Descarga Directa}
+
+\begin{enumerate}
+    \item Visitar: \url{https://github.com/Andark11/LeonvsImapala}
+    \item Clic en \texttt{Code > Download ZIP}
+    \item Extraer el archivo ZIP
+    \item Abrir terminal en el directorio extraído
+\end{enumerate}
+
+\subsection{Dependencias}
+
+El proyecto \textbf{no requiere instalación de paquetes externos}. Utiliza únicamente la biblioteca estándar de Python:
+
+\begin{lstlisting}[language=bash, caption=Verificar instalación]
+# No hay dependencias, pero se puede verificar Python
+python -c "import math, json, random, time; print('OK')"
+\end{lstlisting}
+
+\section{Ejecución del Proyecto}
+
+\subsection{Ejecutar el Programa Principal}
+
+En cualquier sistema operativo:
+
+\begin{lstlisting}[language=bash, caption=Ejecutar el programa]
+# Desde el directorio del proyecto
+python main.py
+
+# O con Python 3 explícitamente
+python3 main.py
+\end{lstlisting}
+
+\subsection{Menú Principal}
+
+Al ejecutar \texttt{main.py}, se muestra el menú interactivo:
+
+\begin{lstlisting}[caption=Menú principal del sistema]
+==========================================================
+=     SISTEMA LEÓN vs IMPALA - Q-LEARNING              =
+==========================================================
+
+1. Entrenar nuevo modelo
+2. Cargar modelo existente
+3. Ver base de conocimientos
+4. Demostración paso a paso
+5. Salir
+
+Seleccione una opción:
+\end{lstlisting}
+
+\subsection{Opciones de Ejecución}
+
+\subsubsection{Opción 1: Entrenar Nuevo Modelo}
+
+\begin{lstlisting}[language=bash, caption=Flujo de entrenamiento]
+Seleccione una opción: 1
+
+Cuantos episodios desea entrenar? 1000
+Nombre del modelo (sin extension): mi_modelo
+
+[====================] 1000/1000 episodios
+Exitos: 105 (10.5%)
+Fracasos: 895 (89.5%)
+
+Modelo guardado: modelos/mi_modelo.json
+\end{lstlisting}
+
+\subsubsection{Opción 2: Cargar Modelo Existente}
+
+\begin{lstlisting}[language=bash, caption=Cargar modelo entrenado]
+Seleccione una opción: 2
+
+Modelos disponibles:
+  1. EM4.json (100,000 episodios, 10.45% éxito)
+  2. modelo_prueba.json (1,000 episodios, 8.2% éxito)
+
+Seleccione modelo: 1
+
+Modelo EM4 cargado exitosamente.
+Q-Table: 15,234 estados
+Base de conocimientos: 3,721 reglas
+\end{lstlisting}
+
+\subsubsection{Opción 3: Ver Base de Conocimientos}
+
+\begin{lstlisting}[caption=Visualizar conocimientos adquiridos]
+Seleccione una opción: 3
+
+==========================================================
+=          BASE DE CONOCIMIENTOS - EM4                 =
+==========================================================
+
+Conocimiento Específico (3,721 reglas):
+-------------------------------------------
+Regla #1:
+  Condiciones: 
+    - Distancia <= 2
+    - Impala NO viendo al león
+    - León NO escondido
+  Acción recomendada: ATACAR
+  Valor Q: +12.34
+  Confianza: 94.2%
+
+[... más reglas ...]
+
+Conocimiento Generalizado (8 reglas clave):
+-------------------------------------------
+1. "Atacar cuando distancia < 2 y no detectado" (Q=+10.5)
+2. "Esconderse cuando distancia > 7" (Q=+3.2)
+3. "Avanzar en distancias medias (3-6)" (Q=+1.8)
+[...]
+\end{lstlisting}
+
+\subsubsection{Opción 4: Demostración Paso a Paso}
+
+\begin{lstlisting}[caption=Visualización paso a paso]
+Seleccione una opción: 4
+
+==========================================================
+=           CACERIA PASO A PASO - EM4                  =
+==========================================================
+
+Turno 1:
+---------
+Estado:
+  - León: Posición 1 (Norte), Distancia=9.5
+  - Impala: Centro, Viendo FRENTE
+  - León detectado: NO
+
+[Grid 19x19]
+    L
+    .
+    .
+    I
+    .
+
+Decisión del león:
+  Acción: AVANZAR (Q=+2.1)
+  Razón: "Distancia lejana, acercarse sigilosamente"
+
+[Presione Enter para siguiente turno...]
+\end{lstlisting}
+
+\section{Tests y Verificación}
+
+\subsection{Ejecutar Tests Unitarios}
+
+\begin{lstlisting}[language=bash, caption=Suite de tests]
+cd tests
+python test_basico.py -v
+
+# Salida esperada:
+test_abrevadero_coordenadas ... ok
+test_leon_avanzar ... ok
+test_impala_deteccion ... ok
+test_q_learning_actualizacion ... ok
+test_recompensas_calculo ... ok
+test_caceria_completa ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.234s
+
+OK
+\end{lstlisting}
+
+\subsection{Verificar Estructura de Archivos}
+
+\begin{lstlisting}[language=bash, caption=Script de verificación]
+# Crear script verify.py
+python -c "
+import os
+import sys
+
+dirs = ['agents', 'simulation', 'knowledge', 
+        'learning', 'storage', 'ui', 'tests']
+files = ['main.py', 'environment.py', 'README.md']
+
+for d in dirs:
+    if not os.path.isdir(d):
+        print(f'ERROR: Directorio {d} no encontrado')
+        sys.exit(1)
+
+for f in files:
+    if not os.path.isfile(f):
+        print(f'ERROR: Archivo {f} no encontrado')
+        sys.exit(1)
+
+print('✓ Estructura de archivos correcta')
+"
+\end{lstlisting}
+
+\section{Configuración Avanzada}
+
+\subsection{Ajustar Parámetros de Entrenamiento}
+
+Editar \texttt{learning/q\_learning.py}:
+
+\begin{lstlisting}[language=Python, caption=Parámetros personalizados]
+class QLearning:
+    def __init__(self, 
+                 alpha: float = 0.05,      # Learning rate (0.01-0.1)
+                 gamma: float = 0.9,       # Discount factor (0.8-0.99)
+                 epsilon: float = 1.0,     # Exploration inicial (0.5-1.0)
+                 epsilon_min: float = 0.1, # Exploration mínima (0.01-0.2)
+                 epsilon_decay: float = 0.995):  # Decay (0.99-0.999)
+        # ...
+\end{lstlisting}
+
+\subsection{Modificar Sistema de Recompensas}
+
+Editar \texttt{learning/recompensas.py}:
+
+\begin{lstlisting}[language=Python, caption=Ajustar pesos]
+class SistemaRecompensas:
+    EXITO_CACERIA = 100.0           # Aumentar/reducir según prioridad
+    FRACASO_CACERIA = -50.0         # Penalización por fracaso
+    ACERCAMIENTO = 1.0              # Reward por acercarse
+    ALEJAMIENTO = -2.0              # Penalización por alejarse
+    # ... más parámetros
+\end{lstlisting}
+
+\section{Solución de Problemas Comunes}
+
+\subsection{Problema: Python no encontrado}
+
+\begin{lstlisting}[language=bash]
+# Solución: Usar python3 explícitamente
+python3 main.py
+
+# O agregar alias (Linux/macOS)
+echo "alias python=python3" >> ~/.bashrc
+source ~/.bashrc
+\end{lstlisting}
+
+\subsection{Problema: Permisos denegados (Linux/macOS)}
+
+\begin{lstlisting}[language=bash]
+chmod +x *.py *.sh
+python main.py
+\end{lstlisting}
+
+\subsection{Problema: Módulo no encontrado}
+
+\begin{lstlisting}[language=bash]
+# Verificar que estás en el directorio correcto
+pwd  # Debe mostrar .../LeonvsImapala
+
+# Verificar estructura
+ls agents/ simulation/ knowledge/
+\end{lstlisting}
+
+\subsection{Problema: Entrenamiento muy lento}
+
+\begin{lstlisting}[language=bash]
+# Solución 1: Reducir episodios
+# En main.py: entrenar con 1,000 en lugar de 100,000
+
+# Solución 2: Desactivar verbose
+# En caceria.py: ejecutar_caceria_completa(verbose=False)
+\end{lstlisting}
+
+\section{Recursos Adicionales}
+
+\subsection{Archivos de Referencia}
+
+\begin{itemize}
+    \item \texttt{README.md}: Documentación completa del proyecto
+    \item \texttt{PRESENTACION\_5MIN.md}: Script de presentación
+    \item \texttt{RESUMEN\_PROYECTO.md}: Resumen ejecutivo
+    \item \texttt{ESTADO\_FINAL.txt}: Estado actual del desarrollo
+\end{itemize}
+
+\subsection{Enlaces Útiles}
+
+\begin{itemize}
+    \item Repositorio: \url{https://github.com/Andark11/LeonvsImapala}
+    \item Documentación Python: \url{https://docs.python.org/3/}
+    \item Q-Learning Tutorial: \url{https://en.wikipedia.org/wiki/Q-learning}
+\end{itemize}
+
+\subsection{Contacto y Soporte}
+
+Para dudas o problemas:
+\begin{itemize}
+    \item GitHub Issues: \url{https://github.com/Andark11/LeonvsImapala/issues}
+    \item Autores: Ver sección de autores en README.md
+\end{itemize}

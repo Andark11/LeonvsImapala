@@ -1,0 +1,278 @@
+\appendix
+
+\chapter{Código Fuente Completo}
+
+\section{Estructura de Archivos}
+
+\begin{verbatim}
+LeonvsImapala/
+|-- main.py                   # Punto de entrada
+|-- environment.py            # Abrevadero y coordenadas
+|-- requirements.txt          # Dependencias (vacio)
+|-- README.md                 # Documentacion principal
+|
+|-- agents/
+|   |-- __init__.py
+|   |-- leon.py              # Agente leon
+|   +-- impala.py            # Agente impala
+|
+|-- simulation/
+|   |-- __init__.py
+|   |-- caceria.py           # Motor de caceria
+|   |-- tiempo.py            # Gestion de tiempo
+|   +-- verificador.py       # Condiciones huida/exito
+|
+|-- knowledge/
+|   |-- __init__.py
+|   |-- base_conocimientos.py  # Base conocimientos
+|   +-- generalizacion.py      # Generalizacion
+|
+|-- learning/
+|   |-- __init__.py
+|   |-- q_learning.py        # Algoritmo Q-Learning
+|   |-- entrenamiento.py     # Loop entrenamiento
+|   +-- recompensas.py       # Sistema recompensas
+|
+|-- storage/
+|   |-- __init__.py
+|   |-- guardado.py          # Persistencia modelos
+|   +-- carga.py             # Carga modelos
+|
+|-- ui/
+|   |-- __init__.py
+|   |-- entrenamiento_ui.py  # UI entrenamiento
+|   |-- explicador.py        # Explicaciones
+|   +-- paso_a_paso.py       # Visualizacion paso a paso
+|
+|-- tests/
+|   |-- __init__.py
+|   +-- test_basico.py       # Tests unitarios
+|
+|-- modelos/                 # Modelos entrenados (generado)
+|   +-- *.json
+|
++-- docs/                    # Documentacion LaTeX
+    |-- main.tex
+    |-- chapters/
+    +-- appendix/
+\end{verbatim}
+
+\section{Módulos Core}
+
+\subsection{environment.py}
+
+\begin{lstlisting}[language=Python, caption=environment.py (completo)]
+"""
+Módulo del entorno: Abrevadero y sistema de coordenadas polares.
+"""
+
+from enum import Enum
+from typing import Tuple
+import math
+
+class Direccion(Enum):
+    """Direcciones cardinales en grados"""
+    NORTE = 0
+    NORESTE = 45
+    ESTE = 90
+    SURESTE = 135
+    SUR = 180
+    SUROESTE = 225
+    OESTE = 270
+    NOROESTE = 315
+
+class Abrevadero:
+    """
+    Representa el abrevadero circular con coordenadas polares.
+    """
+    
+    RADIO = 9.5  # Distancia inicial león-impala
+    ESCALA = 1.9  # Factor conversión a grid 19×19
+    CENTRO = (9.5, 9.5)  # Centro del abrevadero en grid
+    DISTANCIA_MINIMA_HUIDA = 3.0  # Cuadros
+    
+    def __init__(self):
+        self.posiciones = {
+            1: 0,    # Norte
+            2: 45,   # Noreste
+            3: 90,   # Este
+            4: 135,  # Sureste
+            5: 180,  # Sur
+            6: 225,  # Suroeste
+            7: 270,  # Oeste
+            8: 315   # Noroeste
+        }
+    
+    def obtener_coordenadas(self, posicion: int) -> Tuple[float, float]:
+        """Convierte posición cardinal a coordenadas cartesianas"""
+        angulo_grados = self.posiciones[posicion]
+        angulo_rad = math.radians(angulo_grados)
+        
+        x = self.RADIO * math.sin(angulo_rad)
+        y = self.RADIO * math.cos(angulo_rad)
+        
+        return (round(x, 2), round(y, 2))
+    
+    def distancia_leon_impala(self, posicion_leon: int) -> float:
+        """Calcula distancia entre león e impala (en centro)"""
+        x_leon, y_leon = self.obtener_coordenadas(posicion_leon)
+        x_impala, y_impala = self.CENTRO
+        
+        distancia = math.sqrt(
+            (x_impala - x_leon)**2 + (y_impala - y_leon)**2
+        )
+        return round(distancia, 2)
+    
+    def calcular_distancia(self, p1: Tuple[float, float], 
+                          p2: Tuple[float, float]) -> float:
+        """Distancia euclidiana entre dos puntos"""
+        return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+    
+    def leon_en_angulo_vision(self, posicion_leon: int, 
+                              direccion_vista: Direccion) -> bool:
+        """Verifica si león está en cono de visión del impala"""
+        angulo_leon = self.posiciones[posicion_leon]
+        angulo_vista = direccion_vista.value
+        
+        diferencia = abs(angulo_leon - angulo_vista)
+        if diferencia > 180:
+            diferencia = 360 - diferencia
+        
+        # Cono de visión: 120 grados (60 a cada lado)
+        return diferencia <= 60
+    
+    def calcular_nueva_posicion_avance(self, posicion_actual: int) -> Tuple[float, float]:
+        """Calcula nueva posición después de avanzar 1 cuadro"""
+        x, y = self.obtener_coordenadas(posicion_actual)
+        centro_x, centro_y = self.CENTRO
+        
+        # Vector hacia el centro
+        distancia = self.calcular_distancia((x, y), (centro_x, centro_y))
+        if distancia == 0:
+            return (x, y)
+        
+        dx = (centro_x - x) / distancia
+        dy = (centro_y - y) / distancia
+        
+        # Avanzar 1 cuadro
+        nueva_x = x + dx * 1
+        nueva_y = y + dy * 1
+        
+        return (round(nueva_x, 2), round(nueva_y, 2))
+\end{lstlisting}
+
+\section{Módulo de Tests}
+
+\subsection{tests/test\_basico.py}
+
+\begin{lstlisting}[language=Python, caption=Suite de tests (extracto)]
+"""
+Tests unitarios del sistema León vs Impala.
+"""
+
+import unittest
+import sys
+sys.path.append('..')
+
+from environment import Abrevadero, Direccion
+from agents.leon import Leon, AccionLeon
+from agents.impala import Impala, AccionImpala
+from learning.q_learning import QLearning
+from learning.recompensas import SistemaRecompensas
+from simulation.caceria import Caceria, ModoBehaviorImpala
+
+class TestAbrevadero(unittest.TestCase):
+    """Tests del entorno"""
+    
+    def setUp(self):
+        self.abrevadero = Abrevadero()
+    
+    def test_coordenadas_norte(self):
+        """Verifica coordenadas de posición Norte"""
+        x, y = self.abrevadero.obtener_coordenadas(1)
+        self.assertAlmostEqual(x, 0.0, places=1)
+        self.assertAlmostEqual(y, 9.5, places=1)
+    
+    def test_coordenadas_este(self):
+        """Verifica coordenadas de posición Este"""
+        x, y = self.abrevadero.obtener_coordenadas(3)
+        self.assertAlmostEqual(x, 9.5, places=1)
+        self.assertAlmostEqual(y, 0.0, places=1)
+    
+    def test_distancia_inicial(self):
+        """Verifica distancia inicial león-impala"""
+        dist = self.abrevadero.distancia_leon_impala(1)
+        self.assertAlmostEqual(dist, 9.5, delta=0.5)
+
+class TestLeon(unittest.TestCase):
+    """Tests del agente león"""
+    
+    def setUp(self):
+        self.leon = Leon(posicion_inicial=1)
+    
+    def test_inicializacion(self):
+        """Verifica estado inicial"""
+        self.assertEqual(self.leon.posicion, 1)
+        self.assertFalse(self.leon.esta_escondido)
+        self.assertFalse(self.leon.esta_atacando)
+    
+    def test_esconderse(self):
+        """Verifica acción esconderse"""
+        self.leon.ejecutar_accion(AccionLeon.ESCONDERSE)
+        self.assertTrue(self.leon.esta_escondido)
+    
+    def test_atacar(self):
+        """Verifica acción atacar"""
+        self.leon.ejecutar_accion(AccionLeon.ATACAR)
+        self.assertTrue(self.leon.esta_atacando)
+
+class TestQLearning(unittest.TestCase):
+    """Tests del algoritmo Q-Learning"""
+    
+    def setUp(self):
+        self.ql = QLearning(alpha=0.1, gamma=0.9, epsilon=0.5)
+    
+    def test_actualizacion_positiva(self):
+        """Verifica actualización con recompensa positiva"""
+        estado = ('test', 'estado')
+        accion = 'avanzar'
+        
+        self.ql.actualizar(estado, accion, 10.0, estado, False)
+        self.assertGreater(self.ql.q_table[estado][accion], 0)
+    
+    def test_actualizacion_negativa(self):
+        """Verifica actualización con recompensa negativa"""
+        estado = ('test', 'estado')
+        accion = 'atacar'
+        
+        self.ql.actualizar(estado, accion, -10.0, estado, True)
+        self.assertLess(self.ql.q_table[estado][accion], 0)
+
+class TestCaceriaCompleta(unittest.TestCase):
+    """Tests de cacería end-to-end"""
+    
+    def test_caceria_simple(self):
+        """Verifica cacería completa"""
+        abrevadero = Abrevadero()
+        caceria = Caceria(abrevadero)
+        
+        def estrategia_simple(leon, impala, estado):
+            if estado['distancia_leon_impala'] < 2:
+                return AccionLeon.ATACAR
+            return AccionLeon.AVANZAR
+        
+        resultado = caceria.ejecutar_caceria_completa(
+            posicion_inicial_leon=1,
+            estrategia_leon=estrategia_simple,
+            comportamiento_impala=ModoBehaviorImpala.ALEATORIO,
+            verbose=False
+        )
+        
+        self.assertIn(resultado, [
+            ResultadoCaceria.EXITO, 
+            ResultadoCaceria.FRACASO
+        ])
+
+if __name__ == '__main__':
+    unittest.main()
+\end{lstlisting}
